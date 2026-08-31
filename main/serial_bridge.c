@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 
 #include "serial_bridge.h"
 #include "serial_handler.h"
@@ -36,6 +37,11 @@ static SemaphoreHandle_t usb_tx_requested = NULL;
 static SemaphoreHandle_t usb_tx_done = NULL;
 static esp_timer_handle_t state_change_timer;
 static bool download_mode_armed;
+
+// Deferred DTR/RTS line state, applied by state_change_timer_cb() once stable
+#define PENDING_BOOT (1u << 0)
+#define PENDING_RST  (1u << 1)
+static atomic_uint s_pending_line_state = PENDING_BOOT | PENDING_RST;
 
 // Transport data received callback - called by serial handler when data arrives
 static void transport_data_received_callback(const uint8_t *data, size_t len)
@@ -173,40 +179,41 @@ void tud_cdc_line_state_cb(const uint8_t itf, const bool dtr, const bool rts)
         boot = false;
     }
 
+    ESP_LOGI(TAG, "DTR = %d, RTS = %d -> BOOT = %d, RST = %d", dtr, rts, boot, rst);
+
+    // Apply the state only after it has been stable for the debounce period. Hosts often update DTR and RTS with
+    // two separate requests a few milliseconds apart, producing transient states (e.g. DTR = 0 & RTS = 1 while a
+    // terminal is opened or closed) that would otherwise reset the target. Esptool holds its deliberate states for
+    // much longer than the debounce period, so flashing keeps working: its spurious intermediate DTR = 1 & RTS = 1
+    // state is absorbed here, exactly as the previous esptool-specific patch did.
     esp_timer_stop(state_change_timer);  // maybe it is not started so not check the exit value
-
-    if (dtr & rts) {
-        // The assignment of BOOT=1 and RST=1 is postponed and it is done only if no other state change occurs in time
-        // period set by the timer.
-        // This is a patch for Esptool. Esptool generates DTR=0 & RTS=1 followed by DTR=1 & RTS=0. However, a callback
-        // with DTR = 1 & RTS = 1 is received between. This would prevent to put the target chip into download mode.
-        ESP_ERROR_CHECK(esp_timer_start_once(state_change_timer, 10 * 1000 /*us*/));
-
-    } else {
-        ESP_LOGI(TAG, "DTR = %d, RTS = %d -> BOOT = %d, RST = %d", dtr, rts, boot, rst);
-
-        serial_handler_set_boot_reset_pins(boot, rst);
-
-        if (!rst) {
-            const uint32_t default_baud = 115200;
-            if (serial_handler_set_baudrate(default_baud) != ESP_OK) {
-                eub_abort();
-            }
-        }
-
-        // On ESP32, TDI jtag signal is on GPIO12, which is also a strapping pin that determines flash voltage.
-        // If TDI is high when ESP32 is released from external reset, the flash voltage is set to 1.8V, and the chip will fail to boot.
-        // As a solution, MTDI signal forced to be low when RST is about to go high.
-        if (boot) {
-            debug_probe_handle_esp32_tdi_bootstrapping(!rst);
-        }
-    }
+    atomic_store(&s_pending_line_state, (boot ? PENDING_BOOT : 0) | (rst ? PENDING_RST : 0));
+    ESP_ERROR_CHECK(esp_timer_start_once(state_change_timer, 10 * 1000 /*us*/));
 }
 
 static void state_change_timer_cb(void *arg)
 {
-    ESP_LOGI(TAG, "BOOT = 1, RST = 1");
-    serial_handler_set_boot_reset_pins(true, true); // BOOT=1, RST=1 (not in reset)
+    const unsigned int pending = atomic_load(&s_pending_line_state);
+    const bool boot = (pending & PENDING_BOOT) != 0;
+    const bool rst = (pending & PENDING_RST) != 0;
+
+    ESP_LOGI(TAG, "BOOT = %d, RST = %d", boot, rst);
+
+    serial_handler_set_boot_reset_pins(boot, rst);
+
+    if (!rst) {
+        const uint32_t default_baud = 115200;
+        if (serial_handler_set_baudrate(default_baud) != ESP_OK) {
+            eub_abort();
+        }
+    }
+
+    // On ESP32, TDI jtag signal is on GPIO12, which is also a strapping pin that determines flash voltage.
+    // If TDI is high when ESP32 is released from external reset, the flash voltage is set to 1.8V, and the chip will fail to boot.
+    // As a solution, MTDI signal forced to be low when RST is about to go high.
+    if (boot) {
+        debug_probe_handle_esp32_tdi_bootstrapping(!rst);
+    }
 }
 
 static void enter_download_mode(void)
