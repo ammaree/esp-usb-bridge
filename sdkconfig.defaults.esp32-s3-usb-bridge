@@ -1,10 +1,10 @@
-# This file is used to pass ESP32—S3-USB-BRIDGE specific options when building firmware for the probe
-# To pass it to the build system, set the SDKCONFIG_DEFAULTS environment environment variable like so:
+# This file is used to pass ESP32-S3-USB-BRIDGE specific options when building firmware for the probe
+# To pass it to the build system, set the SDKCONFIG_DEFAULTS environment variable like so:
 # export SDKCONFIG_DEFAULTS="sdkconfig.defaults.esp32-s3-usb-bridge;sdkconfig.defaults.esp32s3"
 
 CONFIG_BRIDGE_PRODUCT_NAME="ESP32-S3-USB-BRIDGE"
 
-# Pins as per v1.0 schematic
+# Pins as per the SCH_ESP32-S3-USB-Bridge-MB_V2.1 schematic
 CONFIG_SERIAL_HANDLER_GPIO_BOOT=9
 CONFIG_SERIAL_HANDLER_GPIO_RST=8
 CONFIG_SERIAL_HANDLER_GPIO_RXD=40
@@ -15,13 +15,10 @@ CONFIG_DEBUG_PROBE_GPIO_TDO=2
 CONFIG_DEBUG_PROBE_GPIO_TCK=4
 CONFIG_DEBUG_PROBE_GPIO_TMS=5
 
-# DevKit has 2x LED's directly on Target UART RX & TX
-# DevKit has no WS2812 RGB LED
-CONFIG_BRIDGE_GPIO_LED1=35
-CONFIG_BRIDGE_GPIO_LED2=36
-CONFIG_BRIDGE_GPIO_LED3=37
-
-# Active 0=Low 1-High
-CONFIG_BRIDGE_GPIO_LED1_ACTIVE=0
-CONFIG_BRIDGE_GPIO_LED2_ACTIVE=0
-CONFIG_BRIDGE_GPIO_LED3_ACTIVE=0
+# The TX/RX activity LEDs are hardwired to the target UART lines (IO41/IO40) and
+# are not GPIO-controllable. GPIO 35/36/37 are unconnected on this board. The
+# only firmware-controllable LED is the WS2812 RGB LED on IO42.
+CONFIG_BRIDGE_GPIO_LED1=-1
+CONFIG_BRIDGE_GPIO_LED2=-1
+CONFIG_BRIDGE_GPIO_LED3=-1
+CONFIG_BRIDGE_GPIO_RGB_LED=42
