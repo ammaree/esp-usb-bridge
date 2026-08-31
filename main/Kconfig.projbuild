@@ -63,6 +63,17 @@ menu "Bridge Configuration"
         help
             Logic level when LED3 is active (0=active low, 1=active high)
 
+    config BRIDGE_GPIO_RGB_LED
+        int "GPIO pin for WS2812 RGB status LED"
+        range -1 48
+        default -1
+        help
+            Data pin of a single WS2812 (or compatible) addressable RGB LED used
+            as a combined status indicator: green = serial activity, blue = debug
+            probe activity; fatal errors blink a distinctive red pattern. Set to
+            -1 if the board has no addressable RGB LED. Can be combined with the
+            discrete LED1-3 pins.
+
     config BRIDGE_MSC_VOLUME_LABEL
         string "Volume label shown in the MSC disc"
         default "ESPPROG_MSC"
