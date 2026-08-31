@@ -38,6 +38,18 @@ Similar boards can be manufactured and flashed with the ESP USB Bridge. The pin 
 
 Please note that every board should have its own vendor and product identifiers. There is also a possibility to register a product identifier under the [Espressif vendor identifier](https://github.com/espressif/usb-pids).
 
+## Supported Boards
+
+Besides custom hardware, ready-made board configurations are provided. Select one by passing the matching defaults file, for example:
+
+```bash
+idf.py -DIDF_TARGET=esp32s3 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.jtag.defaults;sdkconfig.defaults.esp32-s3-prog2" build       # ESP-Prog-2
+idf.py -DIDF_TARGET=esp32s3 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.jtag.defaults;sdkconfig.defaults.esp32-s3-usb-bridge" build  # ESP32-S3-USB-Bridge devkit
+idf.py -DIDF_TARGET=esp32s2 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.jtag.defaults;sdkconfig.defaults.esp32-s2-esplink" build     # MuseLab ESPLink v1.2
+```
+
+Note: DTR/RTS line state changes from the host are debounced before being applied to the target's BOOT/RST pins, so terminal emulators that toggle DTR/RTS while opening or closing the port do not reset the attached target. Esptool's deliberate reset sequences are held much longer than the debounce period and keep working unchanged.
+
 ## Serial Bridge
 
 The USB stack of ESP USB Bridge creates a virtual serial port through which the serial port of the target MCU is accessible. For example, this port can be `/dev/ttyACMx` or `COMx` depending on the operating system and is different from the PORT used for flashing the ESP USB Bridge.
