@@ -220,6 +220,8 @@ void app_main(void)
     ESP_ERROR_CHECK(serial_handler_init(TRANSPORT_TYPE_UART));
     serial_handler_register_tx_activity_callback(serial_tx_activity_callback);
     serial_handler_register_rx_activity_callback(serial_rx_activity_callback);
+    serial_handler_register_target_state_callback(led_io_set_target);
+    serial_handler_register_flash_state_callback(led_io_set_flashing);
 
     ESP_ERROR_CHECK(serial_bridge_init());
 

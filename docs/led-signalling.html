@@ -1,0 +1,194 @@
+<title>Bridge LED Signalling</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F8; --card: #FFFFFF; --ink: #172029; --mute: #5C6874; --rule: #D3DAE1; --rule-soft: #E6EBF0;
+    --accent: #B93430; --alt: #1E5AA0; --warn-bg: #FFF4E5; --warn-ink: #7A4B00;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12181F; --card: #1A232C; --ink: #E7ECF1; --mute: #9AA6B2; --rule: #2A3540; --rule-soft: #222C36;
+      --accent: #E4706B; --alt: #74ABEA; --warn-bg: #2E2314; --warn-ink: #F3C77A;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12181F; --card: #1A232C; --ink: #E7ECF1; --mute: #9AA6B2; --rule: #2A3540; --rule-soft: #222C36;
+    --accent: #E4706B; --alt: #74ABEA; --warn-bg: #2E2314; --warn-ink: #F3C77A;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; margin: 0; }
+  main { max-width: 900px; margin: 0 auto; padding: 40px 24px 64px; display: grid; gap: 36px; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 21px; font-weight: 600; }
+  h3 { font-size: 15px; font-weight: 600; }
+  p { margin: 0; max-width: 68ch; }
+  code, .mono { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 0.93em; }
+  .eyebrow { font-family: "IBM Plex Sans Condensed", sans-serif; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--mute); font-weight: 600; }
+  header { display: grid; gap: 10px; }
+  header p { color: var(--mute); }
+  section { display: grid; gap: 14px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mute); font-weight: 600; border-bottom: 1px solid var(--rule); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.pr { color: var(--mute); font-variant-numeric: tabular-nums; width: 1%; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; display: inline-block; border: 1px solid rgba(128,128,128,.35); flex: none; }
+  .board { border: 1px solid var(--rule); border-radius: 6px; background: var(--card); padding: 16px; display: grid; gap: 12px; }
+  .board .nm { font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 600; font-size: 17px; color: var(--accent); }
+  .board .sub { color: var(--mute); font-size: 13.5px; }
+  .board table { border: 0; border-radius: 0; }
+  .board table th, .board table td { padding-left: 0; }
+  .note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; }
+  .note p { max-width: none; color: inherit; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+  li::marker { color: var(--mute); }
+  .src { color: var(--mute); font-size: 12.5px; border-top: 1px solid var(--rule); padding-top: 14px; }
+  .src p { max-width: none; }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Firmware reference &middot; 1 September 2026</div>
+    <h1>Bridge LED Signalling</h1>
+    <p>What each LED means on each supported host board. Boards with an addressable RGB LED run a priority-ordered status scheme; boards with discrete LEDs keep the simpler activity-only behaviour.</p>
+  </header>
+
+  <section>
+    <h2>Two schemes, chosen by the board's hardware</h2>
+    <p>The firmware drives up to three discrete GPIO LEDs (<code>CONFIG_BRIDGE_GPIO_LED1..3</code>) and optionally one addressable WS2812 (<code>CONFIG_BRIDGE_GPIO_RGB_LED</code>, default <code>-1</code> = none). Any of them may be set to <code>-1</code> where the board has no such LED.</p>
+    <ul>
+      <li><strong>Discrete LEDs</strong> show activity only, one LED per role: serial TX, serial RX, debug probe. This is upstream's behaviour and is unchanged.</li>
+      <li><strong>The RGB LED</strong> shows a single <em>state</em> at a time, chosen by priority, because one light cannot usefully mix three meanings. It is the only indicator on boards whose activity LEDs are wired to the UART lines in hardware.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>RGB status scheme</h2>
+    <p>Highest priority wins; the LED is dark when nothing is happening. Brightness is deliberately low &mdash; this is a status light, not illumination.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Priority</th><th>Appearance</th><th>State</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td class="pr">1</td>
+              <td><span class="chip"><span class="dot" style="background:#e23b34"></span> red, fast blink (10&nbsp;Hz)</span></td>
+              <td>fatal error</td>
+              <td><code>eub_abort()</code> &mdash; the bridge has failed and is about to restart. Lasts ~3.5&nbsp;s.</td></tr>
+          <tr><td class="pr">2</td>
+              <td><span class="chip"><span class="dot" style="background:#e23b34"></span> red, slow pulse (1&nbsp;Hz)</span></td>
+              <td>target held in reset</td>
+              <td><code>RST</code> is being driven low. Normal for a moment during a reset; <strong>if it stays</strong>, the host has parked the serial lines in the reset state &mdash; typically a closed terminal. The target is not dead, it is being held.</td></tr>
+          <tr><td class="pr">3</td>
+              <td><span class="chip"><span class="dot" style="background:#e0891a"></span> amber, solid</span></td>
+              <td>target strapped for download</td>
+              <td><code>BOOT</code> is low. The target is being put into, or held in, ROM download mode.</td></tr>
+          <tr><td class="pr">4</td>
+              <td><span class="chip"><span class="dot" style="background:#c23bc2"></span> magenta, pulse (2&nbsp;Hz)</span></td>
+              <td>flashing</td>
+              <td>An MSC/UF2 flash session owns the transport and is writing the target.</td></tr>
+          <tr><td class="pr">5</td>
+              <td><span class="chip"><span class="dot" style="background:#2f6fe0"></span> blue, flash</span></td>
+              <td>debug probe activity</td>
+              <td>JTAG or SWD traffic.</td></tr>
+          <tr><td class="pr">6</td>
+              <td><span class="chip"><span class="dot" style="background:#2e9e63"></span> green, flash</span></td>
+              <td>serial activity</td>
+              <td>UART traffic in either direction. Direction is not distinguished here &mdash; see each board below.</td></tr>
+          <tr><td class="pr">7</td>
+              <td><span class="chip"><span class="dot" style="background:#2b3038"></span> off</span></td>
+              <td>idle</td>
+              <td>Nothing in progress. Also dark when no host is attached.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Activity pulses are stretched to a minimum of 100&nbsp;ms. Without that they would be a few microseconds long and invisible &mdash; the firmware raises and drops the activity flag either side of a single UART write. The LED is refreshed only when the colour actually changes, so an idle bridge sends no WS2812 frames at all.</p>
+    <div class="note">
+      <p><strong>Red fast versus red slow is the distinction that matters.</strong> A fast blink is the bridge failing; a slow pulse is the bridge deliberately holding your target in reset. The second is far more common and is usually the answer to "why is my target dead".</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Per board</h2>
+
+    <div class="board">
+      <span class="nm">ESP32-S3-USB-Bridge</span>
+      <span class="sub"><code>sdkconfig.defaults.esp32-s3-usb-bridge</code> &mdash; RGB scheme active</span>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>LED</th><th>Driven by</th><th>Shows</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip"><span class="dot" style="background:linear-gradient(135deg,#e23b34,#2e9e63,#2f6fe0)"></span> WS2812 RGB</span> &mdash; <code>LED10</code>, IO42</td>
+                <td>firmware, <code>CONFIG_BRIDGE_GPIO_RGB_LED=42</code></td><td>the full RGB status scheme above</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#d7d24a"></span> TX</span> &mdash; <code>LED7</code></td>
+                <td><strong>hardware</strong>, anode to 3V3 via 5.1&nbsp;k, cathode on IO41</td>
+                <td>UART traffic to the target. Not firmware controlled &mdash; it flickers with the line itself.</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#d7d24a"></span> RX</span> &mdash; <code>LED8</code></td>
+                <td><strong>hardware</strong>, same arrangement on IO40</td>
+                <td>UART traffic from the target. Also not firmware controlled.</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#3fa64a"></span> power</span> &mdash; <code>LED6</code></td>
+                <td>hardware, tied to VCC33</td><td>3.3&nbsp;V rail present. Always on.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><code>LED1</code>/<code>LED2</code>/<code>LED3</code> are all <code>-1</code>: GPIO 35/36/37 are unconnected on this board, and the TX/RX indication is already done in hardware. The RGB LED therefore does not duplicate the per-direction split &mdash; the two hardwired LEDs give you that for free, and the RGB is spent on state you cannot otherwise see.</p>
+    </div>
+
+    <div class="board">
+      <span class="nm">MuseLab ESPLink v1.2</span>
+      <span class="sub"><code>sdkconfig.defaults.esp32-s2-esplink</code> &mdash; discrete LEDs, no RGB</span>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>LED</th><th>GPIO</th><th>Shows</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip"><span class="dot" style="background:#e23b34"></span> <code>D1</code> red</td>
+                <td><code>LED1</code> = 12, active high</td><td>serial activity toward the host (target transmitting)</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#2e9e63"></span> <code>D2</code> green</td>
+                <td><code>LED2</code> = 3, active high</td><td>serial activity toward the target</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#2f6fe0"></span> <code>D3</code> blue</td>
+                <td><code>LED3</code> = 21, active high</td><td>debug probe activity</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Series resistors are 10&nbsp;k, so these run at roughly 0.15&nbsp;mA &mdash; expect them dim. There is no power LED. The firmware's TX/RX callback swap is deliberate and matches MuseLab's own net names (<code>TARGET_LED_TX</code> lights when the target transmits); do not "correct" it.</p>
+      <p><strong>D1 may not be fitted.</strong> The red LED is absent from the v1.2 schematic's BOM, so on some boards GPIO12 drives nothing and the practical inventory is green + blue. Check yours before treating a dark D1 as a fault.</p>
+      <p>None of the RGB states apply here. A fatal error shows as the three LEDs blinking a fixed seven-step pattern over ~3.5&nbsp;s.</p>
+    </div>
+
+    <div class="board">
+      <span class="nm">ESP-Prog-2</span>
+      <span class="sub"><code>sdkconfig.defaults.esp32-s3-prog2</code> &mdash; discrete LEDs, no RGB</span>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>LED role</th><th>GPIO</th><th>Shows</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip"><span class="dot" style="background:#2e9e63"></span> <code>LED1</code></td><td>48, active low</td><td>serial activity toward the host</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#2e9e63"></span> <code>LED2</code></td><td>34, active low</td><td>serial activity toward the target</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#2f6fe0"></span> <code>LED3</code></td><td>34, active low</td><td>debug probe activity</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Espressif document a single indicator that shows red for the 3.3&nbsp;V rail, green while downloading or passing serial, and blue during JTAG debugging &mdash; i.e. one multi-colour package rather than three separate lamps. It is <strong>not</strong> addressable, so <code>CONFIG_BRIDGE_GPIO_RGB_LED</code> stays <code>-1</code> and the RGB scheme does not run.</p>
+      <div class="note">
+        <p><strong>Unverified, and one oddity.</strong> These GPIO numbers are upstream's and have not been checked against ESP-Prog-2 hardware here. <code>LED2</code> and <code>LED3</code> are both assigned GPIO 34, so serial-from-target and JTAG activity drive the same lamp and cannot be told apart. That may be intentional for a two-colour part, or may be a defect carried in the default config &mdash; confirm against a board before relying on it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Adding a board</h2>
+    <ul>
+      <li>Set <code>CONFIG_BRIDGE_GPIO_LED1..3</code> to the board's activity LEDs, or <code>-1</code> where there is none. <code>CONFIG_BRIDGE_GPIO_LEDn_ACTIVE</code> selects the polarity.</li>
+      <li>Set <code>CONFIG_BRIDGE_GPIO_RGB_LED</code> to a WS2812 data pin to enable the status scheme, or leave it <code>-1</code>.</li>
+      <li>All four may be <code>-1</code>; the firmware then drives nothing and skips the GPIO and RMT setup entirely.</li>
+      <li>Do not point an activity LED at a pin that carries the UART itself. Where a board wires its indicators to the UART lines, those LEDs are hardware and must be left as <code>-1</code>.</li>
+    </ul>
+  </section>
+
+  <div class="src">
+    <p><strong>Sources.</strong> Behaviour from <code>components/util/led_io.c</code>. ESP32-S3-USB-Bridge LEDs from Espressif <code>SCH_ESP32-S3-USB-Bridge-MB_V2.1_20230601</code>. ESPLink LEDs from <code>wuxx/ESPLink</code> <code>ESPLink_v1.2.pdf</code>, including the D1 BOM omission. ESP-Prog-2 LED description from the Espressif esp-dev-kits user guide; its GPIO assignments are upstream's default config and are not schematic-verified here.</p>
+  </div>
+</main>

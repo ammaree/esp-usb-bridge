@@ -39,6 +39,8 @@ static const char *TAG = "serial_handler";
 
 static serial_tx_notify_cb_t s_tx_callback = NULL;
 static serial_rx_notify_cb_t s_rx_callback = NULL;
+static serial_target_state_cb_t s_target_state_callback = NULL;
+static serial_flash_state_cb_t s_flash_state_callback = NULL;
 
 // Reset timer handle
 static esp_timer_handle_t s_reset_timer = NULL;
@@ -70,6 +72,23 @@ void serial_handler_register_tx_activity_callback(serial_tx_notify_cb_t callback
 void serial_handler_register_rx_activity_callback(serial_rx_notify_cb_t callback)
 {
     s_rx_callback = callback;
+}
+
+void serial_handler_register_target_state_callback(serial_target_state_cb_t callback)
+{
+    s_target_state_callback = callback;
+}
+
+void serial_handler_register_flash_state_callback(serial_flash_state_cb_t callback)
+{
+    s_flash_state_callback = callback;
+}
+
+static void notify_flash_state(bool flashing)
+{
+    if (s_flash_state_callback) {
+        s_flash_state_callback(flashing);
+    }
 }
 
 static void serial_notify_tx_activity(bool active)
@@ -315,6 +334,7 @@ esp_err_t serial_handler_flash_connect(uint32_t baud_rate)
 
     // Take exclusive access for flashing
     atomic_store(&s_transport.is_flashing, true);
+    notify_flash_state(true);
     ESP_LOGI(TAG, "Flashing mode started - bridge callbacks suspended");
 
     // Set initial baudrate
@@ -322,6 +342,7 @@ esp_err_t serial_handler_flash_connect(uint32_t baud_rate)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set initial baudrate");
         atomic_store(&s_transport.is_flashing, false);
+        notify_flash_state(false);
         return ret;
     }
 
@@ -331,6 +352,7 @@ esp_err_t serial_handler_flash_connect(uint32_t baud_rate)
     if (loader_ret != ESP_LOADER_SUCCESS) {
         ESP_LOGE(TAG, "ESP LOADER connection failed: %d", loader_ret);
         atomic_store(&s_transport.is_flashing, false);
+        notify_flash_state(false);
         return ESP_FAIL;
     }
 
@@ -487,6 +509,7 @@ esp_err_t serial_handler_flash_finish(bool reboot)
 
     // Release exclusive access
     atomic_store(&s_transport.is_flashing, false);
+    notify_flash_state(false);
     ESP_LOGI(TAG, "Flashing mode finished - bridge callbacks resumed");
 
     // Perform non-blocking target reset only if reboot is requested
@@ -509,5 +532,8 @@ void serial_handler_set_boot_reset_pins(bool boot_pin, bool reset_pin)
 {
     gpio_set_level(GPIO_BOOT, boot_pin);
     gpio_set_level(GPIO_RST, reset_pin);
+    if (s_target_state_callback) {
+        s_target_state_callback(boot_pin, reset_pin);
+    }
     ESP_LOGD(TAG, "BOOT=%s, RST=%s", boot_pin ? "HIGH" : "LOW", reset_pin ? "HIGH" : "LOW");
 }

@@ -1,4 +1,4 @@
-set(dependencies freertos esp_system)
+set(dependencies freertos esp_system esp_timer)
 
 # Starting from esp-idf v5.3, the GPIO driver is moved to a separate component
 if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER_EQUAL "5.3")

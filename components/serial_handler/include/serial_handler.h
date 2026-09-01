@@ -70,6 +70,18 @@ void serial_handler_register_tx_activity_callback(serial_tx_notify_cb_t callback
 void serial_handler_register_rx_activity_callback(serial_rx_notify_cb_t callback);
 
 /**
+ * @brief Callback reporting the BOOT/RST levels driven onto the target.
+ */
+typedef void (*serial_target_state_cb_t)(bool boot_pin, bool reset_pin);
+void serial_handler_register_target_state_callback(serial_target_state_cb_t callback);
+
+/**
+ * @brief Callback reporting whether a flash session owns the transport.
+ */
+typedef void (*serial_flash_state_cb_t)(bool flashing);
+void serial_handler_register_flash_state_callback(serial_flash_state_cb_t callback);
+
+/**
  * @brief Register callback for received data
  *
  * The callback will be invoked when data is received, but ONLY when

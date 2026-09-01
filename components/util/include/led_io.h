@@ -30,4 +30,6 @@ typedef enum {
 
 void led_io_init(void);
 void led_io_set(led_id_t id, bool active);
+void led_io_set_target(bool boot, bool rst);   // BOOT/RST pin levels driving the target
+void led_io_set_flashing(bool flashing);       // MSC/UF2 flash session active
 void led_io_signal_error(void);   // blocking error blink pattern (~3.5 s)
