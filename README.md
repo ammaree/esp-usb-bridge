@@ -48,7 +48,21 @@ idf.py -DIDF_TARGET=esp32s3 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.j
 idf.py -DIDF_TARGET=esp32s2 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.jtag.defaults;sdkconfig.defaults.esp32-s2-esplink" build     # MuseLab ESPLink v1.2
 ```
 
-Note: DTR/RTS from the host drive the target's BOOT/RST pins directly, so opening or closing the serial port resets the target, and a closed port can leave it held in reset. Use `idf.py monitor --no-reset` (or `esptool --before no-reset`) to attach without resetting.
+Note: DTR/RTS from the host drive the target's BOOT/RST pins directly, so opening or closing the serial port resets the target, and a closed port can leave it held in reset. Use `idf.py monitor --no-reset` (or `esptool --before no-reset`) to attach without resetting. This is upstream's intended behaviour, see espressif/esp-usb-bridge#22.
+
+### Throughput
+
+This fork fixes three defects that silently dropped data on the target to host
+path, which limited it to 115200 (see espressif/esp-usb-bridge#38). Reads now
+verify byte-identical up to 921600, measured at roughly 455 kbit/s for a 1 MB
+transfer against an ESP32 target - about 5x the previous ceiling.
+
+### Documentation
+
+- [`docs/cabling/host-target-cabling.html`](docs/cabling/host-target-cabling.html) - pin-by-pin wiring for the three host boards against the AC01, RS01 and RS02 targets
+- [`docs/cabling/esp32-s3-usb-bridge-to-ac01.html`](docs/cabling/esp32-s3-usb-bridge-to-ac01.html) - worked example with the power budget and pre-flight checks
+- [`docs/led-signalling.html`](docs/led-signalling.html) - what each LED means on each board
+- [`docs/provisioning.md`](docs/provisioning.md) - which unit carries which image
 
 ## Serial Bridge
 
@@ -81,6 +95,15 @@ DTR must be asserted while the magic baud is set, then cleared to fire the reset
 ```bash
 python3 -c "import serial; s=serial.Serial('PORT', 1200); s.close()"
 ```
+
+**Eject the mass storage volume first.** With it mounted the host keeps bulk
+transfers in flight, the PHY teardown hangs, and the bridge drops off USB
+entirely instead of entering download mode - recoverable only by unplugging it.
+Ejecting first makes download mode appear in about two seconds, reliably.
+
+Note that stock devkit firmware may predate this feature; hold the BOOT button
+nearest the module while plugging in as a fallback. After flashing from ROM
+download mode the chip may stay in the loader, and a plain replug starts the app.
 
 After the bridge reboots, flash over USB:
 

@@ -4,3 +4,7 @@ sdkconfig
 sdkconfig.old
 dependencies.lock
 .DS_Store
+
+# editor and tool state
+.vscode/
+.claude/
