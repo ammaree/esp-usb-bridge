@@ -25,7 +25,7 @@
 #include "usb_phy.h"
 #include "soc/rtc_cntl_reg.h"
 
-#define USB_SEND_RINGBUFFER_SIZE (2 * 1024)
+#define USB_SEND_RINGBUFFER_SIZE (16 * 1024)
 /* tud_cdc_n_get_line_state(): bit 0 = DTR, bit 1 = RTS */
 #define CDC_LINE_STATE_DTR (1u << 0)
 
@@ -45,13 +45,15 @@ static void transport_data_received_callback(const uint8_t *data, size_t len)
     ESP_LOGD(TAG, "Transport -> USB ringbuffer (%zu bytes)", len);
     ESP_LOG_BUFFER_HEXDUMP("Transport -> USB", data, len, ESP_LOG_DEBUG);
 
-    // Send received transport data to USB CDC
-    if (xRingbufferSend(usb_sendbuf, data, len, pdMS_TO_TICKS(10)) != pdTRUE) {
-        ESP_LOGV(TAG, "Cannot write to ringbuffer (free %zu of %zu)!",
-                 xRingbufferGetCurFreeSize(usb_sendbuf),
-                 (size_t)USB_SEND_RINGBUFFER_SIZE);
-        vTaskDelay(pdMS_TO_TICKS(10));
+    // Retry rather than drop. Discarding here silently corrupts a bulk transfer,
+    // which is what held the target -> host path to 115200. Bounded so a host
+    // that has stopped reading cannot wedge the UART task indefinitely.
+    for (int retry = 0; retry < 10; retry++) {
+        if (xRingbufferSend(usb_sendbuf, data, len, pdMS_TO_TICKS(100)) == pdTRUE) {
+            return;
+        }
     }
+    ESP_LOGW(TAG, "USB send ringbuffer full, dropped %zu bytes", len);
 }
 
 static esp_err_t usb_wait_for_tx(const uint32_t block_time_ms)
@@ -84,7 +86,7 @@ static void usb_sender_task(void *pvParameters)
                 if (usb_wait_for_tx(50) != ESP_OK) {
                     xSemaphoreTake(usb_tx_requested, 0);
                     tud_cdc_write_clear(); /* host might be disconnected. drop the buffer */
-                    ESP_LOGV(TAG, "usb tx timeout");
+                    ESP_LOGW(TAG, "usb tx timeout, dropped %d bytes", to_send);
                     break;
                 }
                 ESP_LOGD(TAG, "USB ringbuffer -> USB CDC (%d bytes)", wr_len);
