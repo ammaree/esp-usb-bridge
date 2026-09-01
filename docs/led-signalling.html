@@ -135,6 +135,7 @@
         </table>
       </div>
       <p><code>LED1</code>/<code>LED2</code>/<code>LED3</code> are all <code>-1</code>: GPIO 35/36/37 are unconnected on this board, and the TX/RX indication is already done in hardware. The RGB LED therefore does not duplicate the per-direction split &mdash; the two hardwired LEDs give you that for free, and the RGB is spent on state you cannot otherwise see.</p>
+      <p><strong>Verified on hardware 2026-09-01.</strong> Green (serial), the slow red pulse (target held in reset) and solid amber (BOOT asserted) were each driven in turn and were clearly visible, correct in colour, and comfortable in brightness at the default level. The WS2812 takes its VDD from the 5&nbsp;V rail while the ESP32-S3 drives DIN at 3.3&nbsp;V; that is marginal on paper but works on this board, so it needs no level shifter.</p>
     </div>
 
     <div class="board">
