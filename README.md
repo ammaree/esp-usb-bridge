@@ -48,7 +48,7 @@ idf.py -DIDF_TARGET=esp32s3 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.j
 idf.py -DIDF_TARGET=esp32s2 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.jtag.defaults;sdkconfig.defaults.esp32-s2-esplink" build     # MuseLab ESPLink v1.2
 ```
 
-Note: DTR/RTS line state changes from the host are debounced before being applied to the target's BOOT/RST pins, so terminal emulators that toggle DTR/RTS while opening or closing the port do not reset the attached target. Esptool's deliberate reset sequences are held much longer than the debounce period and keep working unchanged.
+Note: DTR/RTS from the host drive the target's BOOT/RST pins directly, so opening or closing the serial port resets the target, and a closed port can leave it held in reset. Use `idf.py monitor --no-reset` (or `esptool --before no-reset`) to attach without resetting.
 
 ## Serial Bridge
 
