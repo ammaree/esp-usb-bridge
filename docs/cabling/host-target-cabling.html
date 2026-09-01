@@ -1,0 +1,363 @@
+<title>Host Target Cabling</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F8; --card: #FFFFFF; --ink: #172029; --mute: #5C6874; --rule: #D3DAE1; --rule-soft: #E6EBF0;
+    --host: #B93430; --tgt: #1E5AA0; --warn-bg: #FFF4E5; --warn-ink: #7A4B00;
+    --gnd: #4B5563; --pwr: #D93B3B; --tx: #E0891A; --rx: #2E9E63; --boot: #8B5CF6; --rst: #2563EB;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12181F; --card: #1A232C; --ink: #E7ECF1; --mute: #9AA6B2; --rule: #2A3540; --rule-soft: #222C36;
+      --host: #E4706B; --tgt: #74ABEA; --warn-bg: #2E2314; --warn-ink: #F3C77A; --gnd: #9CA3AF;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12181F; --card: #1A232C; --ink: #E7ECF1; --mute: #9AA6B2; --rule: #2A3540; --rule-soft: #222C36;
+    --host: #E4706B; --tgt: #74ABEA; --warn-bg: #2E2314; --warn-ink: #F3C77A; --gnd: #9CA3AF;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; margin: 0; }
+  main { max-width: 960px; margin: 0 auto; padding: 40px 24px 64px; display: grid; gap: 38px; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 21px; font-weight: 600; }
+  h3 { font-size: 15px; font-weight: 600; }
+  p { margin: 0; max-width: 68ch; }
+  code, .mono { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 0.93em; }
+  .eyebrow { font-family: "IBM Plex Sans Condensed", sans-serif; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--mute); font-weight: 600; }
+  header { display: grid; gap: 10px; }
+  header p { color: var(--mute); }
+  section { display: grid; gap: 14px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 11px; text-align: left; border-bottom: 1px solid var(--rule-soft); white-space: nowrap; }
+  thead th { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mute); font-weight: 600; border-bottom: 1px solid var(--rule); }
+  tbody tr:last-child td { border-bottom: 0; }
+  th.host, td.host { color: var(--host); }
+  th.tgt, td.tgt { color: var(--tgt); }
+  .grp { border-left: 1px solid var(--rule); }
+  td.sig { font-weight: 500; }
+  .pin { font-family: "IBM Plex Mono", monospace; font-weight: 500; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { border: 1px solid var(--rule); border-radius: 6px; background: var(--card); padding: 14px; display: grid; gap: 10px; }
+  .card .nm { font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .card.h .nm { color: var(--host); }
+  .card.t .nm { color: var(--tgt); }
+  .card small { color: var(--mute); }
+  .card svg { display: block; max-width: 100%; height: auto; font-family: "IBM Plex Mono", Consolas, monospace; }
+  .body { fill: none; stroke: currentColor; stroke-width: 1.4; }
+  .hole { fill: var(--card); stroke: currentColor; stroke-width: 1.1; }
+  .pn { font-size: 9.5px; fill: var(--mute); text-anchor: middle; }
+  .sg { font-size: 10.5px; fill: currentColor; }
+  .note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; }
+  .note p { max-width: none; color: inherit; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+  li::marker { color: var(--mute); }
+  .src { color: var(--mute); font-size: 12.5px; border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 6px; }
+  .src p { max-width: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--mute); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Cabling reference &middot; 1 September 2026</div>
+    <h1>Host Target Cabling</h1>
+    <p>Programming and console cables between the three bridge host boards and the three IRMACOS target boards. Every pin below is read off the board's own schematic; nothing is inferred from a photo or a connector's silkscreen.</p>
+  </header>
+
+  <section>
+    <h2>Read the labels carefully &mdash; the two ends use opposite conventions</h2>
+    <p>Host headers name signals from the <strong>host's</strong> point of view: <code>TX</code> is the host driving the target. Target headers name them from the <strong>target's</strong> point of view: <code>TX</code> is the target's own output. So a cable always joins host <code>TX</code> to target <code>RX</code> and host <code>RX</code> to target <code>TX</code> &mdash; the labels read as a crossover even though the function is a straight link.</p>
+    <p>The tables below are laid out by signal rather than as nine separate cables: read the host pin from one column and the target pin from another, and any of the nine combinations falls out directly.</p>
+  </section>
+
+  <section>
+    <h2>Host boards</h2>
+    <div class="cards">
+      <div class="card h">
+        <span class="nm">ESP32-S3-USB-Bridge</span>
+        <small><code>U2</code> &mdash; 2&times;6 right-angle, both lanes on one connector</small>
+        <svg viewBox="0 0 300 132" role="img" aria-label="ESP32-S3-USB-Bridge U2, a 2 by 6 header: bottom row pins 1 to 6, top row pins 12 down to 7.">
+          <rect x="52" y="30" width="196" height="60" rx="4" class="body"/>
+          <g>
+            <rect x="62" y="38" width="11" height="11" class="hole"/><text x="67.5" y="27" class="pn">12</text><text x="67.5" y="20" class="sg" text-anchor="middle">TDO</text>
+            <rect x="92" y="38" width="11" height="11" class="hole"/><text x="97.5" y="27" class="pn">11</text><text x="97.5" y="20" class="sg" text-anchor="middle">TDI</text>
+            <rect x="122" y="38" width="11" height="11" class="hole"/><text x="127.5" y="27" class="pn">10</text><text x="127.5" y="20" class="sg" text-anchor="middle">TCK</text>
+            <rect x="152" y="38" width="11" height="11" class="hole"/><text x="157.5" y="27" class="pn">9</text><text x="157.5" y="20" class="sg" text-anchor="middle">TMS</text>
+            <rect x="182" y="38" width="11" height="11" class="hole"/><text x="187.5" y="27" class="pn">8</text><text x="187.5" y="20" class="sg" text-anchor="middle">RST</text>
+            <rect x="212" y="38" width="11" height="11" class="hole"/><text x="217.5" y="27" class="pn">7</text><text x="217.5" y="20" class="sg" text-anchor="middle">BOOT</text>
+          </g>
+          <g>
+            <rect x="62" y="70" width="11" height="11" class="hole"/><text x="67.5" y="66" class="pn">1</text><text x="67.5" y="98" class="sg" text-anchor="middle">GND</text>
+            <rect x="92" y="70" width="11" height="11" class="hole"/><text x="97.5" y="66" class="pn">2</text><text x="97.5" y="98" class="sg" text-anchor="middle">TX</text>
+            <rect x="122" y="70" width="11" height="11" class="hole"/><text x="127.5" y="66" class="pn">3</text><text x="127.5" y="98" class="sg" text-anchor="middle">RX</text>
+            <rect x="152" y="70" width="11" height="11" class="hole"/><text x="157.5" y="66" class="pn">4</text><text x="157.5" y="98" class="sg" text-anchor="middle">5V</text>
+            <rect x="182" y="70" width="11" height="11" class="hole"/><text x="187.5" y="66" class="pn">5</text><text x="187.5" y="98" class="sg" text-anchor="middle">3V3</text>
+            <rect x="212" y="70" width="11" height="11" class="hole"/><text x="217.5" y="66" class="pn">6</text><text x="217.5" y="98" class="sg" text-anchor="middle">GND</text>
+          </g>
+          <text x="150" y="120" class="pn">pins run 1-6 along one row and 12-7 back along the other</text>
+        </svg>
+        <small>3V3 is a small LDO shared with the bridge's own ESP32-S3. Pin 4 is USB VBUS straight through (TVS only, no fuse).</small>
+      </div>
+
+      <div class="card h">
+        <span class="nm">MuseLab ESPLink v1.2</span>
+        <small><code>J3</code> serial/control and <code>J4</code> JTAG &mdash; two 1&times;6 headers</small>
+        <svg viewBox="0 0 300 150" role="img" aria-label="ESPLink J3 pins 1 to 6: 3V3, RESET, BOOT, RXD, TXD, GND. J4 pins 1 to 6: GND, TCK, TMS, TDI, TDO, 5V.">
+          <text x="8" y="14" class="sg" style="fill: var(--mute)">J3</text>
+          <rect x="26" y="20" width="248" height="30" rx="4" class="body"/>
+          <g>
+            <rect x="38" y="29" width="11" height="11" class="hole"/><text x="43.5" y="25" class="pn">1</text><text x="43.5" y="60" class="sg" text-anchor="middle">3V3</text>
+            <rect x="78" y="29" width="11" height="11" class="hole"/><text x="83.5" y="25" class="pn">2</text><text x="83.5" y="60" class="sg" text-anchor="middle">RESET</text>
+            <rect x="118" y="29" width="11" height="11" class="hole"/><text x="123.5" y="25" class="pn">3</text><text x="123.5" y="60" class="sg" text-anchor="middle">BOOT</text>
+            <rect x="158" y="29" width="11" height="11" class="hole"/><text x="163.5" y="25" class="pn">4</text><text x="163.5" y="60" class="sg" text-anchor="middle">RXD</text>
+            <rect x="198" y="29" width="11" height="11" class="hole"/><text x="203.5" y="25" class="pn">5</text><text x="203.5" y="60" class="sg" text-anchor="middle">TXD</text>
+            <rect x="238" y="29" width="11" height="11" class="hole"/><text x="243.5" y="25" class="pn">6</text><text x="243.5" y="60" class="sg" text-anchor="middle">GND</text>
+          </g>
+          <text x="8" y="90" class="sg" style="fill: var(--mute)">J4</text>
+          <rect x="26" y="96" width="248" height="30" rx="4" class="body"/>
+          <g>
+            <rect x="38" y="105" width="11" height="11" class="hole"/><text x="43.5" y="101" class="pn">1</text><text x="43.5" y="136" class="sg" text-anchor="middle">GND</text>
+            <rect x="78" y="105" width="11" height="11" class="hole"/><text x="83.5" y="101" class="pn">2</text><text x="83.5" y="136" class="sg" text-anchor="middle">TCK</text>
+            <rect x="118" y="105" width="11" height="11" class="hole"/><text x="123.5" y="101" class="pn">3</text><text x="123.5" y="136" class="sg" text-anchor="middle">TMS</text>
+            <rect x="158" y="105" width="11" height="11" class="hole"/><text x="163.5" y="101" class="pn">4</text><text x="163.5" y="136" class="sg" text-anchor="middle">TDI</text>
+            <rect x="198" y="105" width="11" height="11" class="hole"/><text x="203.5" y="101" class="pn">5</text><text x="203.5" y="136" class="sg" text-anchor="middle">TDO</text>
+            <rect x="238" y="105" width="11" height="11" class="hole"/><text x="243.5" y="101" class="pn">6</text><text x="243.5" y="136" class="sg" text-anchor="middle">5V</text>
+          </g>
+        </svg>
+        <small>JTAG lines carry series resistors from pack <code>RP1</code>. J3 offers 3V3, J4 offers 5V.</small>
+      </div>
+
+      <div class="card h">
+        <span class="nm">ESP-Prog-2</span>
+        <small><code>PROG</code> 6-pin 2.54&nbsp;mm and <code>JTAG</code> 10-pin 1.27&nbsp;mm</small>
+        <svg viewBox="0 0 300 150" role="img" aria-label="ESP-Prog-2 Program header pins 1 to 6 and JTAG header pins 1 to 10.">
+          <text x="8" y="14" class="sg" style="fill: var(--mute)">PROG</text>
+          <rect x="46" y="20" width="228" height="30" rx="4" class="body"/>
+          <g>
+            <rect x="58" y="29" width="11" height="11" class="hole"/><text x="63.5" y="25" class="pn">1</text><text x="63.5" y="60" class="sg" text-anchor="middle">EN</text>
+            <rect x="98" y="29" width="11" height="11" class="hole"/><text x="103.5" y="25" class="pn">2</text><text x="103.5" y="60" class="sg" text-anchor="middle">VDD</text>
+            <rect x="138" y="29" width="11" height="11" class="hole"/><text x="143.5" y="25" class="pn">3</text><text x="143.5" y="60" class="sg" text-anchor="middle">TXD</text>
+            <rect x="178" y="29" width="11" height="11" class="hole"/><text x="183.5" y="25" class="pn">4</text><text x="183.5" y="60" class="sg" text-anchor="middle">GND</text>
+            <rect x="218" y="29" width="11" height="11" class="hole"/><text x="223.5" y="25" class="pn">5</text><text x="223.5" y="60" class="sg" text-anchor="middle">RXD</text>
+            <rect x="252" y="29" width="11" height="11" class="hole"/><text x="257.5" y="25" class="pn">6</text><text x="257.5" y="60" class="sg" text-anchor="middle">IO0</text>
+          </g>
+          <text x="8" y="90" class="sg" style="fill: var(--mute)">JTAG</text>
+          <rect x="46" y="96" width="228" height="30" rx="4" class="body"/>
+          <g>
+            <rect x="55" y="105" width="9" height="9" class="hole"/><text x="59.5" y="101" class="pn">1</text><text x="59.5" y="136" class="sg" text-anchor="middle">VDD</text>
+            <rect x="79" y="105" width="9" height="9" class="hole"/><text x="83.5" y="101" class="pn">2</text><text x="83.5" y="136" class="sg" text-anchor="middle">TMS</text>
+            <rect x="103" y="105" width="9" height="9" class="hole"/><text x="107.5" y="101" class="pn">3</text><text x="107.5" y="136" class="sg" text-anchor="middle">GND</text>
+            <rect x="127" y="105" width="9" height="9" class="hole"/><text x="131.5" y="101" class="pn">4</text><text x="131.5" y="136" class="sg" text-anchor="middle">TCK</text>
+            <rect x="151" y="105" width="9" height="9" class="hole"/><text x="155.5" y="101" class="pn">5</text><text x="155.5" y="136" class="sg" text-anchor="middle">GND</text>
+            <rect x="175" y="105" width="9" height="9" class="hole"/><text x="179.5" y="101" class="pn">6</text><text x="179.5" y="136" class="sg" text-anchor="middle">TDO</text>
+            <rect x="199" y="105" width="9" height="9" class="hole"/><text x="203.5" y="101" class="pn">7</text><text x="203.5" y="136" class="sg" text-anchor="middle">GND</text>
+            <rect x="223" y="105" width="9" height="9" class="hole"/><text x="227.5" y="101" class="pn">8</text><text x="227.5" y="136" class="sg" text-anchor="middle">TDI</text>
+            <rect x="247" y="105" width="9" height="9" class="hole"/><text x="251.5" y="101" class="pn">9</text><text x="251.5" y="136" class="sg" text-anchor="middle">GND</text>
+          </g>
+        </svg>
+        <small>VDD on both headers is jumper-selectable 3.3&nbsp;V or 5&nbsp;V (<code>PROG PWR SEL</code> / <code>JTAG PWR SEL</code>). JTAG pin 10 is NC.</small>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Target boards</h2>
+    <div class="cards">
+      <div class="card t">
+        <span class="nm">IRMACOS-AC-01 v1.4b</span>
+        <small><code>PROG</code> 1&times;6 &nbsp;&middot;&nbsp; <code>JTAG</code> 1&times;6</small>
+        <svg viewBox="0 0 300 150" role="img" aria-label="AC01 PROG pins 1 to 6: GND, TX, RX, GPIO0, RST, VCC. JTAG pins 1 to 6: VCC, GND, IO12, IO13, IO14, IO15.">
+          <text x="8" y="14" class="sg" style="fill: var(--mute)">PROG</text>
+          <rect x="46" y="20" width="228" height="30" rx="4" class="body"/>
+          <g>
+            <rect x="58" y="29" width="11" height="11" class="hole"/><text x="63.5" y="25" class="pn">1</text><text x="63.5" y="60" class="sg" text-anchor="middle">GND</text>
+            <rect x="98" y="29" width="11" height="11" class="hole"/><text x="103.5" y="25" class="pn">2</text><text x="103.5" y="60" class="sg" text-anchor="middle">TX</text>
+            <rect x="138" y="29" width="11" height="11" class="hole"/><text x="143.5" y="25" class="pn">3</text><text x="143.5" y="60" class="sg" text-anchor="middle">RX</text>
+            <rect x="178" y="29" width="11" height="11" class="hole"/><text x="183.5" y="25" class="pn">4</text><text x="183.5" y="60" class="sg" text-anchor="middle">GPIO0</text>
+            <rect x="218" y="29" width="11" height="11" class="hole"/><text x="223.5" y="25" class="pn">5</text><text x="223.5" y="60" class="sg" text-anchor="middle">RST</text>
+            <rect x="252" y="29" width="11" height="11" class="hole"/><text x="257.5" y="25" class="pn">6</text><text x="257.5" y="60" class="sg" text-anchor="middle">VCC</text>
+          </g>
+          <text x="8" y="90" class="sg" style="fill: var(--mute)">JTAG</text>
+          <rect x="46" y="96" width="228" height="30" rx="4" class="body"/>
+          <g>
+            <rect x="58" y="105" width="11" height="11" class="hole"/><text x="63.5" y="101" class="pn">1</text><text x="63.5" y="136" class="sg" text-anchor="middle">VCC</text>
+            <rect x="98" y="105" width="11" height="11" class="hole"/><text x="103.5" y="101" class="pn">2</text><text x="103.5" y="136" class="sg" text-anchor="middle">GND</text>
+            <rect x="138" y="105" width="11" height="11" class="hole"/><text x="143.5" y="101" class="pn">3</text><text x="143.5" y="136" class="sg" text-anchor="middle">IO12</text>
+            <rect x="178" y="105" width="11" height="11" class="hole"/><text x="183.5" y="101" class="pn">4</text><text x="183.5" y="136" class="sg" text-anchor="middle">IO13</text>
+            <rect x="218" y="105" width="11" height="11" class="hole"/><text x="223.5" y="101" class="pn">5</text><text x="223.5" y="136" class="sg" text-anchor="middle">IO14</text>
+            <rect x="252" y="105" width="11" height="11" class="hole"/><text x="257.5" y="101" class="pn">6</text><text x="257.5" y="136" class="sg" text-anchor="middle">IO15</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="card t">
+        <span class="nm">IRMACOS-RS-01 v1.7d</span>
+        <small><code>PRG</code> 2&times;5 (adds I&sup2;C) &nbsp;&middot;&nbsp; <code>JTAG</code> 1&times;6</small>
+        <svg viewBox="0 0 300 150" role="img" aria-label="RS01 PRG 2 by 5 header, odd pins GPIO0 TX GND SDA IO18 and even pins RST RX VCC SCL IO19. JTAG pins 1 to 6: VCC, GND, IO12 to IO15.">
+          <text x="8" y="14" class="sg" style="fill: var(--mute)">PRG</text>
+          <rect x="52" y="18" width="206" height="46" rx="4" class="body"/>
+          <g>
+            <rect x="62" y="24" width="10" height="10" class="hole"/><text x="67" y="21" class="pn">1</text><text x="67" y="14" class="sg" text-anchor="middle">GPIO0</text>
+            <rect x="100" y="24" width="10" height="10" class="hole"/><text x="105" y="21" class="pn">3</text><text x="105" y="14" class="sg" text-anchor="middle">TX</text>
+            <rect x="138" y="24" width="10" height="10" class="hole"/><text x="143" y="21" class="pn">5</text><text x="143" y="14" class="sg" text-anchor="middle">GND</text>
+            <rect x="176" y="24" width="10" height="10" class="hole"/><text x="181" y="21" class="pn">7</text><text x="181" y="14" class="sg" text-anchor="middle">SDA</text>
+            <rect x="214" y="24" width="10" height="10" class="hole"/><text x="219" y="21" class="pn">9</text><text x="219" y="14" class="sg" text-anchor="middle">IO18</text>
+          </g>
+          <g>
+            <rect x="62" y="46" width="10" height="10" class="hole"/><text x="67" y="43" class="pn">2</text><text x="67" y="72" class="sg" text-anchor="middle">RST</text>
+            <rect x="100" y="46" width="10" height="10" class="hole"/><text x="105" y="43" class="pn">4</text><text x="105" y="72" class="sg" text-anchor="middle">RX</text>
+            <rect x="138" y="46" width="10" height="10" class="hole"/><text x="143" y="43" class="pn">6</text><text x="143" y="72" class="sg" text-anchor="middle">VCC</text>
+            <rect x="176" y="46" width="10" height="10" class="hole"/><text x="181" y="43" class="pn">8</text><text x="181" y="72" class="sg" text-anchor="middle">SCL</text>
+            <rect x="214" y="46" width="10" height="10" class="hole"/><text x="219" y="43" class="pn">10</text><text x="219" y="72" class="sg" text-anchor="middle">IO19</text>
+          </g>
+          <text x="8" y="98" class="sg" style="fill: var(--mute)">JTAG</text>
+          <rect x="46" y="104" width="228" height="28" rx="4" class="body"/>
+          <g>
+            <rect x="58" y="112" width="11" height="11" class="hole"/><text x="63.5" y="109" class="pn">1</text><text x="63.5" y="142" class="sg" text-anchor="middle">VCC</text>
+            <rect x="98" y="112" width="11" height="11" class="hole"/><text x="103.5" y="109" class="pn">2</text><text x="103.5" y="142" class="sg" text-anchor="middle">GND</text>
+            <rect x="138" y="112" width="11" height="11" class="hole"/><text x="143.5" y="109" class="pn">3</text><text x="143.5" y="142" class="sg" text-anchor="middle">IO12</text>
+            <rect x="178" y="112" width="11" height="11" class="hole"/><text x="183.5" y="109" class="pn">4</text><text x="183.5" y="142" class="sg" text-anchor="middle">IO13</text>
+            <rect x="218" y="112" width="11" height="11" class="hole"/><text x="223.5" y="109" class="pn">5</text><text x="223.5" y="142" class="sg" text-anchor="middle">IO14</text>
+            <rect x="252" y="112" width="11" height="11" class="hole"/><text x="257.5" y="109" class="pn">6</text><text x="257.5" y="142" class="sg" text-anchor="middle">IO15</text>
+          </g>
+        </svg>
+        <small>Pins 7&ndash;10 are I&sup2;C (SDA/SCL/IO18/IO19), not part of a programming cable.</small>
+      </div>
+
+      <div class="card t">
+        <span class="nm">IRMACOS-RS-02 v2.4</span>
+        <small><code>PRG</code> 2&times;3 &nbsp;&middot;&nbsp; <code>JTG</code> 2&times;5</small>
+        <svg viewBox="0 0 300 150" role="img" aria-label="RS02 PRG 2 by 3 header: odd pins RST TX RX, even pins VCC GND GPIO0. JTG 2 by 5 header: odd pins VCC GND GND GND GND, even pins IO14 IO13 IO15 IO12 NC.">
+          <text x="8" y="14" class="sg" style="fill: var(--mute)">PRG</text>
+          <rect x="66" y="18" width="130" height="46" rx="4" class="body"/>
+          <g>
+            <rect x="80" y="24" width="10" height="10" class="hole"/><text x="85" y="21" class="pn">1</text><text x="85" y="14" class="sg" text-anchor="middle">RST</text>
+            <rect x="126" y="24" width="10" height="10" class="hole"/><text x="131" y="21" class="pn">3</text><text x="131" y="14" class="sg" text-anchor="middle">TX</text>
+            <rect x="172" y="24" width="10" height="10" class="hole"/><text x="177" y="21" class="pn">5</text><text x="177" y="14" class="sg" text-anchor="middle">RX</text>
+          </g>
+          <g>
+            <rect x="80" y="46" width="10" height="10" class="hole"/><text x="85" y="43" class="pn">2</text><text x="85" y="72" class="sg" text-anchor="middle">VCC</text>
+            <rect x="126" y="46" width="10" height="10" class="hole"/><text x="131" y="43" class="pn">4</text><text x="131" y="72" class="sg" text-anchor="middle">GND</text>
+            <rect x="172" y="46" width="10" height="10" class="hole"/><text x="177" y="43" class="pn">6</text><text x="177" y="72" class="sg" text-anchor="middle">GPIO0</text>
+          </g>
+          <text x="8" y="98" class="sg" style="fill: var(--mute)">JTG</text>
+          <rect x="52" y="96" width="206" height="46" rx="4" class="body"/>
+          <g>
+            <rect x="62" y="102" width="10" height="10" class="hole"/><text x="67" y="99" class="pn">1</text><text x="67" y="92" class="sg" text-anchor="middle">VCC</text>
+            <rect x="100" y="102" width="10" height="10" class="hole"/><text x="105" y="99" class="pn">3</text><text x="105" y="92" class="sg" text-anchor="middle">GND</text>
+            <rect x="138" y="102" width="10" height="10" class="hole"/><text x="143" y="99" class="pn">5</text><text x="143" y="92" class="sg" text-anchor="middle">GND</text>
+            <rect x="176" y="102" width="10" height="10" class="hole"/><text x="181" y="99" class="pn">7</text><text x="181" y="92" class="sg" text-anchor="middle">GND</text>
+            <rect x="214" y="102" width="10" height="10" class="hole"/><text x="219" y="99" class="pn">9</text><text x="219" y="92" class="sg" text-anchor="middle">GND</text>
+          </g>
+          <g>
+            <rect x="62" y="124" width="10" height="10" class="hole"/><text x="67" y="121" class="pn">2</text><text x="67" y="150" class="sg" text-anchor="middle">IO14</text>
+            <rect x="100" y="124" width="10" height="10" class="hole"/><text x="105" y="121" class="pn">4</text><text x="105" y="150" class="sg" text-anchor="middle">IO13</text>
+            <rect x="138" y="124" width="10" height="10" class="hole"/><text x="143" y="121" class="pn">6</text><text x="143" y="150" class="sg" text-anchor="middle">IO15</text>
+            <rect x="176" y="124" width="10" height="10" class="hole"/><text x="181" y="121" class="pn">8</text><text x="181" y="150" class="sg" text-anchor="middle">IO12</text>
+            <rect x="214" y="124" width="10" height="10" class="hole"/><text x="219" y="121" class="pn">10</text><text x="219" y="150" class="sg" text-anchor="middle">n/c</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Serial and control lane &mdash; six wires</h2>
+    <p>Pick one host column and one target column; each row is one wire. This is the whole cable for flashing and console.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th class="host">Bridge <code>U2</code></th><th class="host">ESPLink <code>J3</code></th><th class="host">Prog-2 <code>PROG</code></th>
+            <th class="tgt grp">AC01 <code>PROG</code></th><th class="tgt">RS01 <code>PRG</code></th><th class="tgt">RS02 <code>PRG</code></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="sig"><span class="sw" style="background:#4B5563"></span> GND</td>
+              <td class="host pin">6 <span style="color:var(--mute)">(or 1)</span></td><td class="host pin">6</td><td class="host pin">4</td>
+              <td class="tgt pin grp">1</td><td class="tgt pin">5</td><td class="tgt pin">4</td></tr>
+          <tr><td class="sig"><span class="sw" style="background:#E0891A"></span> host TX &rarr; target RX</td>
+              <td class="host pin">2</td><td class="host pin">5</td><td class="host pin">3</td>
+              <td class="tgt pin grp">3</td><td class="tgt pin">4</td><td class="tgt pin">5</td></tr>
+          <tr><td class="sig"><span class="sw" style="background:#2E9E63"></span> target TX &rarr; host RX</td>
+              <td class="host pin">3</td><td class="host pin">4</td><td class="host pin">5</td>
+              <td class="tgt pin grp">2</td><td class="tgt pin">3</td><td class="tgt pin">3</td></tr>
+          <tr><td class="sig"><span class="sw" style="background:#8B5CF6"></span> BOOT &rarr; GPIO0</td>
+              <td class="host pin">7</td><td class="host pin">3</td><td class="host pin">6</td>
+              <td class="tgt pin grp">4</td><td class="tgt pin">1</td><td class="tgt pin">6</td></tr>
+          <tr><td class="sig"><span class="sw" style="background:#2563EB"></span> RST &rarr; EN</td>
+              <td class="host pin">8</td><td class="host pin">2</td><td class="host pin">1</td>
+              <td class="tgt pin grp">5</td><td class="tgt pin">2</td><td class="tgt pin">1</td></tr>
+          <tr><td class="sig"><span class="sw" style="background:#D93B3B"></span> 3V3 &rarr; VCC</td>
+              <td class="host pin">5</td><td class="host pin">1</td><td class="host pin">2</td>
+              <td class="tgt pin grp">6</td><td class="tgt pin">6</td><td class="tgt pin">2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Worked example, ESPLink to RS02: J3.6&rarr;PRG.4, J3.5&rarr;PRG.5, J3.4&rarr;PRG.3, J3.3&rarr;PRG.6, J3.2&rarr;PRG.1, J3.1&rarr;PRG.2.</p>
+  </section>
+
+  <section>
+    <h2>JTAG lane &mdash; four wires plus a ground</h2>
+    <p>Optional, and only for debugging. On every one of these targets JTAG lands on the ESP32's <code>MTDI</code>/<code>MTCK</code>/<code>MTMS</code>/<code>MTDO</code> = GPIO12/13/14/15. Leave the target's JTAG <code>VCC</code> pin unconnected &mdash; power comes over the serial lane.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th class="host">Bridge <code>U2</code></th><th class="host">ESPLink <code>J4</code></th><th class="host">Prog-2 <code>JTAG</code></th>
+            <th class="tgt grp">AC01 <code>JTAG</code></th><th class="tgt">RS01 <code>JTAG</code></th><th class="tgt">RS02 <code>JTG</code></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="sig">GND</td><td class="host pin">1</td><td class="host pin">1</td><td class="host pin">3, 5, 7, 9</td>
+              <td class="tgt pin grp">2</td><td class="tgt pin">2</td><td class="tgt pin">3, 5, 7, 9</td></tr>
+          <tr><td class="sig">TDI &rarr; IO12 (MTDI)</td><td class="host pin">11</td><td class="host pin">4</td><td class="host pin">8</td>
+              <td class="tgt pin grp">3</td><td class="tgt pin">3</td><td class="tgt pin">8</td></tr>
+          <tr><td class="sig">TCK &rarr; IO13 (MTCK)</td><td class="host pin">10</td><td class="host pin">2</td><td class="host pin">4</td>
+              <td class="tgt pin grp">4</td><td class="tgt pin">4</td><td class="tgt pin">4</td></tr>
+          <tr><td class="sig">TMS &rarr; IO14 (MTMS)</td><td class="host pin">9</td><td class="host pin">3</td><td class="host pin">2</td>
+              <td class="tgt pin grp">5</td><td class="tgt pin">5</td><td class="tgt pin">2</td></tr>
+          <tr><td class="sig">TDO &larr; IO15 (MTDO)</td><td class="host pin">12</td><td class="host pin">5</td><td class="host pin">6</td>
+              <td class="tgt pin grp">6</td><td class="tgt pin">6</td><td class="tgt pin">6</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>GPIO12 decides flash voltage at reset.</strong> On the ESP32 it must be low as <code>EN</code> rises, or the chip selects 1.8&nbsp;V flash and fails to boot. The bridge firmware forces TDI low across a target reset, so a connected JTAG cable is safe through esptool resets &mdash; but if a target stops booting with JTAG plugged in and nothing else changed, unplug the JTAG lane first.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Power</h2>
+    <ul>
+      <li><strong>Never feed the target from two sources.</strong> With the 3V3 wire fitted, leave the target's own 24&nbsp;V supply off. None of these hosts has a reverse-blocking diode on its 3V3 output.</li>
+      <li><strong>ESP32-S3-USB-Bridge</strong> shares one small LDO with its own ESP32-S3; only a couple of hundred milliamps are spare. A WROOM target peaks well above that on boot, and an AC01 fed this way was seen to log <code>flash read err</code> and retry before coming up. Its <code>U2</code> pin&nbsp;4 is USB VBUS straight through, so feeding 5&nbsp;V into the target's own regulator is the better option where the target accepts it.</li>
+      <li><strong>ESPLink</strong> offers 3V3 on <code>J3</code> pin&nbsp;1 and 5&nbsp;V on <code>J4</code> pin&nbsp;6.</li>
+      <li><strong>ESP-Prog-2</strong> has jumper-selected VDD on each header &mdash; check <code>PROG PWR SEL</code> is on 3.3&nbsp;V before connecting to a 3.3&nbsp;V rail.</li>
+      <li>All three targets are 24&nbsp;V boards whose on-board PSU module produces the single <code>VCC</code> rail that feeds the ESP32 directly; on these boards <code>VCC</code> is 3.3&nbsp;V.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Before first power-up</h2>
+    <ul>
+      <li>Meter the host's power pin against its ground pin and confirm the voltage before the cable touches the target.</li>
+      <li>Meter the target's <code>VCC</code> to <code>GND</code> on its own 24&nbsp;V supply and confirm 3.3&nbsp;V. This doubles as an orientation check &mdash; if the voltage shows up between the wrong pair, you are counting from the wrong end of the header.</li>
+      <li>Ring the finished cable through against the table above; nothing outside those pairs should beep.</li>
+      <li>Closing the serial port leaves the target held in reset, because the host parks the lines in the state that means "reset". Attach with <code>idf.py monitor --no-reset</code>, or <code>esptool --before no-reset</code>, to avoid disturbing a running target.</li>
+    </ul>
+  </section>
+
+  <div class="src">
+    <p><strong>Sources.</strong> ESP32-S3-USB-Bridge: Espressif <code>SCH_ESP32-S3-USB-Bridge-MB_V2.1_20230601</code>. ESPLink: <code>wuxx/ESPLink</code> <code>schematic/ESPLink_v1.2.pdf</code>. ESP-Prog-2: Espressif esp-dev-kits user guide. AC01: <code>IRMACOS - v1.4b</code>. RS01: <code>IRMACOS_v1_7d_4</code> rev R1.6c. RS02: <code>IRM_v2_4_r5_4_7</code> rev R5.4.7g. Every header was read from the rendered schematic sheet, not from a text extraction.</p>
+    <p>Not verified: header pitch and gender on the bridge's <code>U2</code> and on the IRMACOS boards, and the PSU module part fitted to each target &mdash; hence the meter checks above.</p>
+  </div>
+</main>

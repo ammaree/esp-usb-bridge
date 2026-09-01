@@ -1,0 +1,293 @@
+<title>AC01 Bridge Cable</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F8; --card: #FFFFFF; --ink: #172029; --mute: #5C6874; --rule: #D3DAE1;
+    --bridge: #B93430; --ac01: #1E5AA0; --warn-bg: #FFF4E5; --warn-ink: #7A4B00;
+    --w-gnd: #4B5563; --w-pwr: #D93B3B; --w-tx: #E0891A; --w-rx: #2E9E63; --w-boot: #8B5CF6; --w-rst: #2563EB;
+    --w-tdo: #0E9AA7; --w-tdi: #C2410C; --w-tck: #7C3AED; --w-tms: #15803D;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12181F; --card: #1A232C; --ink: #E7ECF1; --mute: #9AA6B2; --rule: #2A3540;
+      --bridge: #E4706B; --ac01: #74ABEA; --warn-bg: #2E2314; --warn-ink: #F3C77A;
+      --w-gnd: #9CA3AF; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12181F; --card: #1A232C; --ink: #E7ECF1; --mute: #9AA6B2; --rule: #2A3540;
+    --bridge: #E4706B; --ac01: #74ABEA; --warn-bg: #2E2314; --warn-ink: #F3C77A;
+    --w-gnd: #9CA3AF; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; margin: 0; }
+  main { max-width: 880px; margin: 0 auto; padding: 40px 24px 64px; display: grid; gap: 36px; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 21px; font-weight: 600; }
+  h3 { font-size: 16px; font-weight: 600; }
+  p { margin: 0; max-width: 66ch; }
+  code, .mono { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 0.93em; }
+  .eyebrow { font-family: "IBM Plex Sans Condensed", sans-serif; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--mute); font-weight: 600; }
+  header { display: grid; gap: 10px; }
+  header p { color: var(--mute); }
+  .lede { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .board { border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; background: var(--card); display: grid; gap: 4px; }
+  .board .name { font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .board.bridge .name { color: var(--bridge); }
+  .board.ac01 .name { color: var(--ac01); }
+  .board small { color: var(--mute); }
+  section { display: grid; gap: 14px; }
+  figure { margin: 0; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; overflow-x: auto; }
+  figure svg { display: block; max-width: 100%; height: auto; font-family: "IBM Plex Mono", Consolas, monospace; }
+  figcaption { color: var(--mute); font-size: 13px; padding-top: 10px; max-width: 70ch; }
+  .pin { fill: var(--card); stroke: currentColor; stroke-width: 1.2; }
+  .hdr-bridge { fill: none; stroke: var(--bridge); stroke-width: 1.5; }
+  .hdr-ac01 { fill: none; stroke: var(--ac01); stroke-width: 1.5; }
+  .lbl { font-size: 11.5px; fill: currentColor; }
+  .lbl-mute { font-size: 11px; fill: var(--mute); }
+  .lbl-bridge { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 13px; font-weight: 600; fill: var(--bridge); }
+  .lbl-ac01 { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 13px; font-weight: 600; fill: var(--ac01); }
+  .num { font-size: 10px; fill: currentColor; text-anchor: middle; }
+  .wire { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+  .wlbl { font-size: 11px; font-weight: 500; paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+  .ghost { opacity: 0.35; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mute); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.b { color: var(--bridge); font-weight: 500; }
+  td.a { color: var(--ac01); font-weight: 500; }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--rule); }
+  .arrow { color: var(--mute); text-align: center; }
+  .note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; }
+  .note p { max-width: none; color: inherit; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .opt { border: 1px solid var(--rule); border-radius: 6px; background: var(--card); padding: 14px; display: grid; gap: 8px; }
+  .opt .tag { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mute); font-weight: 600; }
+  ul, ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+  li::marker { color: var(--mute); }
+  .src { color: var(--mute); font-size: 12.5px; border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 4px; }
+  .src p { max-width: none; }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Cable specification · Rev A · 1 September 2026</div>
+    <h1>AC01 Bridge Cable</h1>
+    <p>Programming, console and reset control for the IRMACOS-AC-01 from the ESP32-S3-USB-Bridge, with the AC01 powered from the bridge. Six wires for the PROG lane; four more if JTAG is wanted.</p>
+    <div class="lede">
+      <div class="board bridge">
+        <span class="name">ESP32-S3-USB-Bridge</span>
+        <span>Target header <code>U2</code> — 2×6 right-angle box header</span>
+        <small>Espressif schematic SCH_ESP32-S3-USB-Bridge-MB V2.1 (2023-06-01)</small>
+      </div>
+      <div class="board ac01">
+        <span class="name">IRMACOS-AC-01 v1.4b</span>
+        <span>Headers <code>PROG</code> (1×6) and <code>JTAG</code> (1×6), beside the ESP32-WROOM</span>
+        <small>KSS schematic “IRMACOS - v1.4b”, kss_ac_01 repo</small>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>PROG lane — the six wires that do the job</h2>
+    <figure>
+      <svg viewBox="0 0 760 420" role="img" aria-label="Six wires from the bridge's U2 header to the AC01 PROG header: ground, 3.3 volt power, crossed TX/RX, BOOT to GPIO0 and RST to RST.">
+        <!-- Bridge U2 header -->
+        <text x="100" y="22" class="lbl-bridge">ESP32-S3-USB-Bridge · U2 (2×6) — looking at the board’s header</text>
+        <rect x="100" y="50" width="390" height="80" rx="6" class="hdr-bridge"/>
+        <!-- top row: pins 12..7 -->
+        <g>
+          <text x="130" y="42" class="lbl-mute" text-anchor="middle">TDO</text>
+          <text x="190" y="42" class="lbl-mute" text-anchor="middle">TDI</text>
+          <text x="250" y="42" class="lbl-mute" text-anchor="middle">TCK</text>
+          <text x="310" y="42" class="lbl-mute" text-anchor="middle">TMS</text>
+          <text x="370" y="42" class="lbl" text-anchor="middle">RST · IO8</text>
+          <text x="430" y="42" class="lbl" text-anchor="middle">BOOT · IO9</text>
+          <rect x="122" y="62" width="16" height="16" class="pin ghost"/><text x="130" y="74" class="num">12</text>
+          <rect x="182" y="62" width="16" height="16" class="pin ghost"/><text x="190" y="74" class="num">11</text>
+          <rect x="242" y="62" width="16" height="16" class="pin ghost"/><text x="250" y="74" class="num">10</text>
+          <rect x="302" y="62" width="16" height="16" class="pin ghost"/><text x="310" y="74" class="num">9</text>
+          <rect x="362" y="62" width="16" height="16" class="pin"/><text x="370" y="74" class="num">8</text>
+          <rect x="422" y="62" width="16" height="16" class="pin"/><text x="430" y="74" class="num">7</text>
+        </g>
+        <!-- bottom row: pins 1..6 -->
+        <g>
+          <rect x="122" y="102" width="16" height="16" class="pin ghost"/><text x="130" y="114" class="num">1</text>
+          <rect x="182" y="102" width="16" height="16" class="pin"/><text x="190" y="114" class="num">2</text>
+          <rect x="242" y="102" width="16" height="16" class="pin"/><text x="250" y="114" class="num">3</text>
+          <rect x="302" y="102" width="16" height="16" class="pin ghost"/><text x="310" y="114" class="num">4</text>
+          <rect x="362" y="102" width="16" height="16" class="pin"/><text x="370" y="114" class="num">5</text>
+          <rect x="422" y="102" width="16" height="16" class="pin"/><text x="430" y="114" class="num">6</text>
+          <text x="130" y="148" class="lbl-mute" text-anchor="middle">GND</text>
+          <text x="190" y="148" class="lbl" text-anchor="middle">TX · IO41</text>
+          <text x="250" y="148" class="lbl" text-anchor="middle">RX · IO40</text>
+          <text x="310" y="148" class="lbl-mute" text-anchor="middle">5V (VBUS)</text>
+          <text x="370" y="148" class="lbl" text-anchor="middle">3V3</text>
+          <text x="430" y="148" class="lbl" text-anchor="middle">GND</text>
+        </g>
+
+        <!-- wires -->
+        <path d="M430,118 V135 H160 V300 H190 V332" class="wire" style="stroke: var(--w-gnd)"/>
+        <path d="M190,118 V180 L310,270 V332" class="wire" style="stroke: var(--w-tx)"/>
+        <path d="M250,118 V332" class="wire" style="stroke: var(--w-rx)"/>
+        <path d="M370,118 V150 H520 V300 H490 V332" class="wire" style="stroke: var(--w-pwr)"/>
+        <path d="M370,78 V90 H400 V180 L430,270 V332" class="wire" style="stroke: var(--w-rst)"/>
+        <path d="M430,78 V90 H460 V180 L370,270 V332" class="wire" style="stroke: var(--w-boot)"/>
+
+        <!-- wire labels -->
+        <text x="160" y="222" class="wlbl" style="fill: var(--w-gnd)" text-anchor="end" dx="-6">GND</text>
+        <text x="236" y="222" class="wlbl" style="fill: var(--w-tx)" text-anchor="middle">bridge TX → AC01 RX</text>
+        <text x="250" y="200" class="wlbl" style="fill: var(--w-rx)" text-anchor="end" dx="-8">AC01 TX → bridge RX</text>
+        <text x="520" y="232" class="wlbl" style="fill: var(--w-pwr)" text-anchor="start" dx="6">3V3 → VCC</text>
+        <text x="396" y="150" class="wlbl" style="fill: var(--w-rst)" text-anchor="end">RST</text>
+        <text x="466" y="150" class="wlbl" style="fill: var(--w-boot)" text-anchor="start">BOOT → GPIO0</text>
+
+        <!-- AC01 PROG header -->
+        <text x="160" y="312" class="lbl-ac01">IRMACOS-AC-01 · PROG (1×6)</text>
+        <rect x="160" y="320" width="370" height="44" rx="6" class="hdr-ac01"/>
+        <g>
+          <rect x="182" y="334" width="16" height="16" class="pin"/><text x="190" y="346" class="num">1</text>
+          <rect x="242" y="334" width="16" height="16" class="pin"/><text x="250" y="346" class="num">2</text>
+          <rect x="302" y="334" width="16" height="16" class="pin"/><text x="310" y="346" class="num">3</text>
+          <rect x="362" y="334" width="16" height="16" class="pin"/><text x="370" y="346" class="num">4</text>
+          <rect x="422" y="334" width="16" height="16" class="pin"/><text x="430" y="346" class="num">5</text>
+          <rect x="482" y="334" width="16" height="16" class="pin"/><text x="490" y="346" class="num">6</text>
+          <text x="190" y="384" class="lbl" text-anchor="middle">GND</text>
+          <text x="250" y="384" class="lbl" text-anchor="middle">TX · TXD0</text>
+          <text x="310" y="384" class="lbl" text-anchor="middle">RX · RXD0</text>
+          <text x="370" y="384" class="lbl" text-anchor="middle">GPIO0</text>
+          <text x="430" y="384" class="lbl" text-anchor="middle">RST · EN</text>
+          <text x="490" y="384" class="lbl" text-anchor="middle">VCC (3V3)</text>
+        </g>
+        <text x="380" y="410" class="lbl-mute" text-anchor="middle">Greyed pins are unused by this lane. U2 pin 4 (5 V) is deliberately left open — see Power.</text>
+      </svg>
+      <figcaption>Figure 1 — The PROG lane. Ground is taken from U2 pin 6 rather than pin 1 (same net — each has its own GND symbol on the schematic) so the lane occupies the 2·3 / 5·6·7·8 cluster with the 3V3/GND pair side by side. TX and RX cross once, as always between two UARTs; everything else is pin-for-pin. U2 numbering runs down one column (1–6) and back up the other (12–7), which is the Espressif schematic convention, not the IDC zig-zag — confirm pin 1 on the bridge silkscreen before crimping.</figcaption>
+    </figure>
+
+    <h3>Crimp list</h3>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>AC01 PROG</th><th>Net · ESP32 pin</th><th></th><th>Bridge U2</th><th>Net · GPIO</th><th>Suggested colour</th></tr></thead>
+      <tbody>
+        <tr><td class="a mono">pin 1</td><td class="mono">GND</td><td class="arrow">—</td><td class="b mono">pin 6</td><td class="mono">GND (pin 1 is the same net; 6 keeps the lane grouped)</td><td><span class="swatch" style="background:#111"></span>black</td></tr>
+        <tr><td class="a mono">pin 2</td><td class="mono">TX · TXD0 (GPIO1)</td><td class="arrow">→</td><td class="b mono">pin 3</td><td class="mono">RX · IO40</td><td><span class="swatch" style="background:#2E9E63"></span>green</td></tr>
+        <tr><td class="a mono">pin 3</td><td class="mono">RX · RXD0 (GPIO3)</td><td class="arrow">←</td><td class="b mono">pin 2</td><td class="mono">TX · IO41</td><td><span class="swatch" style="background:#E0891A"></span>orange</td></tr>
+        <tr><td class="a mono">pin 4</td><td class="mono">GPIO0</td><td class="arrow">←</td><td class="b mono">pin 7</td><td class="mono">BOOT · IO9</td><td><span class="swatch" style="background:#8B5CF6"></span>violet</td></tr>
+        <tr><td class="a mono">pin 5</td><td class="mono">RST → EN</td><td class="arrow">←</td><td class="b mono">pin 8</td><td class="mono">RST · IO8</td><td><span class="swatch" style="background:#2563EB"></span>blue</td></tr>
+        <tr><td class="a mono">pin 6</td><td class="mono">VCC (3.3 V rail)</td><td class="arrow">←</td><td class="b mono">pin 5</td><td class="mono">3V3 · LDO out</td><td><span class="swatch" style="background:#D93B3B"></span>red</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Both boards are 3.3 V logic — no level shifting. The bridge drives BOOT and RST open-drain with internal pull-ups (upstream commit <code>7534bb5</code>), so it never fights the AC01’s own <code>RST</code> button or its pull-up/100 nF network; it simply pulls low when esptool asks.</p>
+  </section>
+
+  <section>
+    <h2>Power — feeding the AC01 from the bridge</h2>
+    <p>The AC01 is a 24 V board: its 3-pin <code>PSU</code> module drops +24 V to the single <code>VCC</code> rail. On the schematic the WROOM’s <code>3V3</code> pin (U1 pin 2), the pull-ups and the JTAG/PROG <code>VCC</code> pins all hang on that same <code>VCC</code> supply symbol — there is no other regulator — so <code>VCC</code> is the WROOM’s 3.3 V rail. Wire 4 back-feeds it from the bridge’s LDO.</p>
+    <div class="two">
+      <div class="opt">
+        <span class="tag">Default · what the cable above does</span>
+        <h3>3V3 from U2 pin 5 → PROG pin 4</h3>
+        <p>Works for flashing and console. The budget is the catch: the bridge’s LDO is an unmarked SOT-223 AMS1117-class part (10 µF in/out, no heatsinking copper) already feeding its own ESP32-S3. Realistic spare is <strong>~200–300 mA</strong>. A WROOM transmitting on Wi-Fi peaks at ~500 mA — expect brown-outs or LDO thermal throttling once the AC01 firmware brings Wi-Fi up.</p>
+      </div>
+      <div class="opt">
+        <span class="tag">Alternative · verify the PSU module first</span>
+        <h3>5 V from U2 pin 4 → AC01 +24V terminal</h3>
+        <p>U2 pin 4 is USB VBUS straight through (TVS only, no fuse). If the AC01’s <code>PSU</code> module is a wide-input buck (TSR-1 / K78xx class, V<sub>in</sub> min ≈ 4.5 V), 5 V into the <code>+24V</code> terminal gives a properly regulated 3.3 V from the AC01’s own converter, with the powered hub supplying the current. Relays stay dead (24 V coils) — fine for programming. Read the module’s part number before trying this.</p>
+      </div>
+    </div>
+    <div class="note">
+      <p><strong>Never both.</strong> With wire 4 connected, leave the AC01’s 24 V supply off. The bridge’s LDO output has no reverse-blocking diode (verified on the schematic), so two regulators would fight on the same rail. If the AC01 will be on its own 24 V supply during a session, pull wire 4 out of the housing — a 5-wire cable is the safe variant for a powered target.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>JTAG lane — optional four wires</h2>
+    <figure>
+      <svg viewBox="0 0 760 330" role="img" aria-label="Four JTAG wires from the bridge's U2 top-row pins 9 to 12 to the AC01 JTAG header, plus a ground.">
+        <text x="100" y="22" class="lbl-bridge">ESP32-S3-USB-Bridge · U2 — same orientation as Figure 1</text>
+        <rect x="100" y="50" width="390" height="80" rx="6" class="hdr-bridge"/>
+        <g>
+          <text x="130" y="42" class="lbl" text-anchor="middle">TDO · IO2</text>
+          <text x="190" y="42" class="lbl" text-anchor="middle">TDI · IO3</text>
+          <text x="250" y="42" class="lbl" text-anchor="middle">TCK · IO4</text>
+          <text x="310" y="42" class="lbl" text-anchor="middle">TMS · IO5</text>
+          <text x="370" y="42" class="lbl-mute" text-anchor="middle">RST</text>
+          <text x="430" y="42" class="lbl-mute" text-anchor="middle">BOOT</text>
+          <rect x="122" y="62" width="16" height="16" class="pin"/><text x="130" y="74" class="num">12</text>
+          <rect x="182" y="62" width="16" height="16" class="pin"/><text x="190" y="74" class="num">11</text>
+          <rect x="242" y="62" width="16" height="16" class="pin"/><text x="250" y="74" class="num">10</text>
+          <rect x="302" y="62" width="16" height="16" class="pin"/><text x="310" y="74" class="num">9</text>
+          <rect x="362" y="62" width="16" height="16" class="pin ghost"/><text x="370" y="74" class="num">8</text>
+          <rect x="422" y="62" width="16" height="16" class="pin ghost"/><text x="430" y="74" class="num">7</text>
+          <rect x="122" y="102" width="16" height="16" class="pin"/><text x="130" y="114" class="num">1</text>
+          <rect x="182" y="102" width="16" height="16" class="pin ghost"/><text x="190" y="114" class="num">2</text>
+          <rect x="242" y="102" width="16" height="16" class="pin ghost"/><text x="250" y="114" class="num">3</text>
+          <rect x="302" y="102" width="16" height="16" class="pin ghost"/><text x="310" y="114" class="num">4</text>
+          <rect x="362" y="102" width="16" height="16" class="pin ghost"/><text x="370" y="114" class="num">5</text>
+          <rect x="422" y="102" width="16" height="16" class="pin ghost"/><text x="430" y="114" class="num">6</text>
+          <text x="130" y="148" class="lbl" text-anchor="middle">GND</text>
+          <text x="430" y="148" class="lbl-mute" text-anchor="middle">GND (PROG lane)</text>
+        </g>
+        <!-- wires: jog through the body to exit between bottom-row pins -->
+        <path d="M130,78 V90 H160 V180 L490,250 V262" class="wire" style="stroke: var(--w-tdo)"/>
+        <path d="M190,78 V90 H220 V180 L310,250 V262" class="wire" style="stroke: var(--w-tdi)"/>
+        <path d="M250,78 V90 H280 V180 L370,250 V262" class="wire" style="stroke: var(--w-tck)"/>
+        <path d="M310,78 V90 H340 V180 L430,250 V262" class="wire" style="stroke: var(--w-tms)"/>
+        <path d="M130,118 V180 L250,250 V262" class="wire" style="stroke: var(--w-gnd)"/>
+        <text x="452" y="236" class="wlbl" style="fill: var(--w-tdo)" text-anchor="start">TDO ← MTDO</text>
+        <text x="226" y="150" class="wlbl" style="fill: var(--w-tdi)" text-anchor="start">TDI → MTDI</text>
+        <text x="286" y="172" class="wlbl" style="fill: var(--w-tck)" text-anchor="start">TCK</text>
+        <text x="346" y="150" class="wlbl" style="fill: var(--w-tms)" text-anchor="start">TMS</text>
+        <text x="124" y="150" class="wlbl" style="fill: var(--w-gnd)" text-anchor="end">GND</text>
+        <!-- AC01 JTAG header, pin 1 at left -->
+        <text x="160" y="242" class="lbl-ac01">IRMACOS-AC-01 · JTAG (1×6) — pins 1 → 6, left to right</text>
+        <rect x="160" y="250" width="370" height="44" rx="6" class="hdr-ac01"/>
+        <g>
+          <rect x="182" y="264" width="16" height="16" class="pin ghost"/><text x="190" y="276" class="num">1</text>
+          <rect x="242" y="264" width="16" height="16" class="pin"/><text x="250" y="276" class="num">2</text>
+          <rect x="302" y="264" width="16" height="16" class="pin"/><text x="310" y="276" class="num">3</text>
+          <rect x="362" y="264" width="16" height="16" class="pin"/><text x="370" y="276" class="num">4</text>
+          <rect x="422" y="264" width="16" height="16" class="pin"/><text x="430" y="276" class="num">5</text>
+          <rect x="482" y="264" width="16" height="16" class="pin"/><text x="490" y="276" class="num">6</text>
+          <text x="190" y="314" class="lbl-mute" text-anchor="middle">VCC (n/c)</text>
+          <text x="250" y="314" class="lbl" text-anchor="middle">GND</text>
+          <text x="310" y="314" class="lbl" text-anchor="middle">IO12 · MTDI</text>
+          <text x="370" y="314" class="lbl" text-anchor="middle">IO13 · MTCK</text>
+          <text x="430" y="314" class="lbl" text-anchor="middle">IO14 · MTMS</text>
+          <text x="490" y="314" class="lbl" text-anchor="middle">IO15 · MTDO</text>
+        </g>
+      </svg>
+      <figcaption>Figure 2 — JTAG add-on. Only fit this if you will actually debug over JTAG; it is not needed for flashing or console. Leave the JTAG Vcc pin unconnected — power arrives via PROG.</figcaption>
+    </figure>
+    <table>
+      <thead><tr><th>Wire</th><th>Bridge U2</th><th>Net · GPIO</th><th></th><th>AC01 JTAG</th><th>ESP32 signal</th></tr></thead>
+      <tbody>
+        <tr><td>7</td><td class="b mono">pin 12</td><td class="mono">TDO · IO2</td><td class="arrow">←</td><td class="a mono">pin 6 · IO15</td><td class="mono">MTDO</td></tr>
+        <tr><td>8</td><td class="b mono">pin 11</td><td class="mono">TDI · IO3</td><td class="arrow">→</td><td class="a mono">pin 3 · IO12</td><td class="mono">MTDI</td></tr>
+        <tr><td>9</td><td class="b mono">pin 10</td><td class="mono">TCK · IO4</td><td class="arrow">→</td><td class="a mono">pin 4 · IO13</td><td class="mono">MTCK</td></tr>
+        <tr><td>10</td><td class="b mono">pin 9</td><td class="mono">TMS · IO5</td><td class="arrow">→</td><td class="a mono">pin 5 · IO14</td><td class="mono">MTMS</td></tr>
+        <tr><td>—</td><td class="b mono">pin 1</td><td class="mono">GND</td><td class="arrow">—</td><td class="a mono">pin 2 · GND</td><td class="mono">second ground, keeps TCK clean (pin 6 is taken by the PROG lane)</td></tr>
+        <tr><td>—</td><td class="b mono">—</td><td class="mono">—</td><td class="arrow"></td><td class="a mono">pin 1 · VCC</td><td class="mono">leave unconnected — power comes via PROG</td></tr>
+      </tbody>
+    </table>
+    <p><strong>GPIO12 strapping.</strong> On the WROOM, MTDI/GPIO12 also selects flash voltage at reset: high → 1.8 V → the AC01 fails to boot. The bridge firmware forces TDI low across a target reset for ESP32 targets (<code>debug_probe_handle_esp32_tdi_bootstrapping</code>), so a connected JTAG cable is safe through esptool resets — but pull it if you see boot failures with JTAG plugged and nothing else changed.</p>
+  </section>
+
+  <section>
+    <h2>Before plugging in — three meter checks</h2>
+    <ol>
+      <li><strong>Bridge pin numbering.</strong> USB in, cable off: U2 pin 4 reads <strong>5 V</strong> to pin 1 and pin 5 reads <strong>3.3 V</strong>. If 5 V shows up on a different pin, the header is numbered the other way — re-map before crimping.</li>
+      <li><strong>AC01 rail and pin 1.</strong> 24 V applied, cable off: PROG pin 6 (<code>VCC</code>) to pin 1 (<code>GND</code>) reads <strong>3.3 V</strong>. This doubles as the orientation check — if 3.3 V appears between the other two end pins, you are counting from the wrong end.</li>
+      <li><strong>Continuity on the finished cable.</strong> PROG 1 ↔ bridge 6, PROG 2 ↔ bridge 3, PROG 3 ↔ bridge 2, PROG 4 ↔ bridge 7, PROG 5 ↔ bridge 8, PROG 6 ↔ bridge 5. Nothing else should beep.</li>
+    </ol>
+    <p>First power-up: 24 V off, cable in, USB in. The AC01’s <code>LED1/LED2</code> come alive from the back-fed rail; the bridge’s CDC port then shows the AC01 console, and <code>esptool chip_id</code> through the bridge proves BOOT/RST.</p>
+  </section>
+
+  <div class="src">
+    <p><strong>Sources.</strong> Bridge: Espressif SCH_ESP32-S3-USB-Bridge-MB_V2.1_20230601 — U2 pin nets traced from the sheet (pin 4 = VCC_5V is an explicit junction on the VBUS net; several third-party pinouts claim 5 V is absent — they are wrong for V2.1). AC01: “IRMACOS - v1.4b” schematic (Next Evolution SRL, doc 0416467, R1.4b, 2017-10-25) — PROG and JTAG pin numbers and nets read from the rendered sheet; <code>TX</code>/<code>RX</code> are U1 pins 35 <code>TXD0</code> / 34 <code>RXD0</code>; <code>RST</code> reaches U1 pin 3 <code>EN</code> via the RST button network; <code>VCC</code> is the supply symbol on U1 pin 2 <code>3V3</code>.</p>
+    <p>Not verified: the bridge LDO part number (unmarked on the schematic; AMS1117 class inferred from footprint and 10 µF in/out), the U2 header pitch, and the AC01 <code>PSU</code> module part — hence the meter checks above.</p>
+  </div>
+</main>
