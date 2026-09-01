@@ -12,6 +12,8 @@ Firmware: this fork at `afcd243` (master), full chip erase before each flash.
 | ESP-Prog-2 #C | `94A990397D4C` | `rel_prog2` | 48/48/34 | done |
 | ESP-Prog-2 #D | `94A990398780` | `rel_prog2` | 48/48/34 | done |
 
+All seven verified: enumerate as `303A:1002` with a working CDC port.
+
 ESProg v6.2b x3 run esp-tether, not this firmware - classic ESP32, no native USB.
 
 ## Notes
