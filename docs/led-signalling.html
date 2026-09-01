@@ -105,7 +105,7 @@
         </tbody>
       </table>
     </div>
-    <p>Activity pulses are stretched to a minimum of 100&nbsp;ms. Without that they would be a few microseconds long and invisible &mdash; the firmware raises and drops the activity flag either side of a single UART write. The LED is refreshed only when the colour actually changes, so an idle bridge sends no WS2812 frames at all.</p>
+    <p>Activity is latched for 250&nbsp;ms. The raw pulse is a few microseconds &mdash; the firmware raises and drops the flag either side of a single UART write &mdash; and even the gap <em>between</em> reports is long: with a 64-byte CDC buffer and a saturated 115200 link they arrive about every 114&nbsp;ms, so a shorter hold makes a busy link look like it is flickering. The LED is refreshed only when the colour actually changes, so an idle bridge sends no WS2812 frames at all.</p>
     <div class="note">
       <p><strong>Red fast versus red slow is the distinction that matters.</strong> A fast blink is the bridge failing; a slow pulse is the bridge deliberately holding your target in reset. The second is far more common and is usually the answer to "why is my target dead".</p>
     </div>
@@ -164,17 +164,22 @@
       <span class="sub"><code>sdkconfig.defaults.esp32-s3-prog2</code> &mdash; discrete LEDs, no RGB</span>
       <div class="scroll">
         <table>
-          <thead><tr><th>LED role</th><th>GPIO</th><th>Shows</th></tr></thead>
+          <thead><tr><th>LED</th><th>GPIO / net</th><th>Shows</th></tr></thead>
           <tbody>
-            <tr><td><span class="chip"><span class="dot" style="background:#2e9e63"></span> <code>LED1</code></td><td>48, active low</td><td>serial activity toward the host</td></tr>
-            <tr><td><span class="chip"><span class="dot" style="background:#2e9e63"></span> <code>LED2</code></td><td>34, active low</td><td>serial activity toward the target</td></tr>
-            <tr><td><span class="chip"><span class="dot" style="background:#2f6fe0"></span> <code>LED3</code></td><td>34, active low</td><td>debug probe activity</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#2e9e63"></span> <code>D5</code> green, silkscreen PROG</td>
+                <td>48 &mdash; <code>UART_LED</code>, R6 1&nbsp;k, active low</td>
+                <td>serial activity, both directions (<code>LED1</code> and <code>LED2</code>)</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#2f6fe0"></span> <code>D7</code> blue, silkscreen JTAG</td>
+                <td>34 &mdash; <code>JTAG_LED</code>, R37 1&nbsp;k, active low</td>
+                <td>debug probe activity (<code>LED3</code>)</td></tr>
+            <tr><td><span class="chip"><span class="dot" style="background:#e23b34"></span> <code>D6</code> red</td>
+                <td>hardware, power regulator block</td><td>3.3&nbsp;V rail present. Always on.</td></tr>
           </tbody>
         </table>
       </div>
-      <p>Espressif document a single indicator that shows red for the 3.3&nbsp;V rail, green while downloading or passing serial, and blue during JTAG debugging &mdash; i.e. one multi-colour package rather than three separate lamps. It is <strong>not</strong> addressable, so <code>CONFIG_BRIDGE_GPIO_RGB_LED</code> stays <code>-1</code> and the RGB scheme does not run.</p>
+      <p>Not addressable, so <code>CONFIG_BRIDGE_GPIO_RGB_LED</code> stays <code>-1</code> and the RGB scheme does not run. Both LEDs sit behind 1&nbsp;k on the 3.3&nbsp;V rail &mdash; roughly 1.2&nbsp;mA through the green and 0.4&nbsp;mA through the blue &mdash; so they are dim by design. Solidly lit, not bright, is correct.</p>
       <div class="note">
-        <p><strong>Unverified, and one oddity.</strong> These GPIO numbers are upstream's and have not been checked against ESP-Prog-2 hardware here. <code>LED2</code> and <code>LED3</code> are both assigned GPIO 34, so serial-from-target and JTAG activity drive the same lamp and cannot be told apart. That may be intentional for a two-colour part, or may be a defect carried in the default config &mdash; confirm against a board before relying on it.</p>
+        <p><strong>Upstream's default config is wrong here.</strong> It assigns <code>LED2</code> (serial toward the target) to GPIO 34, which is the <em>JTAG</em> lamp, so ordinary serial traffic lights the LED marked JTAG. Confirmed on hardware 2026-09-01 by driving serial with no JTAG activity whatsoever: the blue lamp lit. Espressif's schematic settles it &mdash; the nets are named <code>UART_LED</code> on GPIO 48 and <code>JTAG_LED</code> on GPIO 34. This fork sets <code>LED1</code> and <code>LED2</code> both to 48 so serial shares the green lamp, leaving 34 to JTAG alone.</p>
       </div>
     </div>
   </section>
@@ -185,6 +190,8 @@
       <li>Set <code>CONFIG_BRIDGE_GPIO_LED1..3</code> to the board's activity LEDs, or <code>-1</code> where there is none. <code>CONFIG_BRIDGE_GPIO_LEDn_ACTIVE</code> selects the polarity.</li>
       <li>Set <code>CONFIG_BRIDGE_GPIO_RGB_LED</code> to a WS2812 data pin to enable the status scheme, or leave it <code>-1</code>.</li>
       <li>All four may be <code>-1</code>; the firmware then drives nothing and skips the GPIO and RMT setup entirely.</li>
+      <li>Two roles may share a pin, as serial TX and RX do on the ESP-Prog-2. The firmware ORs the roles mapped to a pin before driving it; without that an idle role clears the pin an active one has just set, and the LED flickers instead of lighting.</li>
+      <li>Activity is latched for 250&nbsp;ms &mdash; longer than the gap between activity reports on a saturated link, which is what stops a busy bridge looking like it is flickering.</li>
       <li>Do not point an activity LED at a pin that carries the UART itself. Where a board wires its indicators to the UART lines, those LEDs are hardware and must be left as <code>-1</code>.</li>
     </ul>
   </section>

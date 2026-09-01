@@ -41,21 +41,26 @@ static void gpio_led_set(led_id_t id, bool active)
     }
 }
 
-#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
-
 #define RGB_LVL         24          // status light, not illumination
 #define TICK_MS         50
-#define ACT_HOLD_TICKS  2           // stretch activity; raw pulses are far too short to see
+#define ACT_HOLD_TICKS  5           // 250 ms: must outlast the gap between activity reports
 
-static led_strip_handle_t s_strip;
 static esp_timer_handle_t s_tick_timer;
 static volatile uint32_t s_tick;
-static volatile uint32_t s_serial_until;
-static volatile uint32_t s_jtag_until;
+static volatile uint32_t s_act_until[3];    // indexed by led_id_t
 static volatile bool s_boot_low;
 static volatile bool s_rst_low;
 static volatile bool s_flashing;
 static volatile bool s_error;
+static bool s_gpio_on[3];
+
+// Indexed by led_id_t. A board may map several roles onto one pin.
+static const int s_pin[3] = { LED_TX, LED_RX, LED_JTAG };
+static const int s_lvl[3] = { LED_TX_ON, LED_RX_ON, LED_JTAG_ON };
+
+#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
+
+static led_strip_handle_t s_strip;
 static uint8_t s_last[3];
 
 static void rgb_write(uint8_t r, uint8_t g, uint8_t b)
@@ -70,11 +75,13 @@ static void rgb_write(uint8_t r, uint8_t g, uint8_t b)
     led_strip_refresh(s_strip);
 }
 
-// Only this timer touches the strip, so no lock is needed. Highest priority state wins.
-static void rgb_tick(void *arg)
+// Highest priority state wins.
+static void rgb_render(uint32_t t)
 {
-    const uint32_t t = ++s_tick;
     const bool half = (t % 10) < 5;
+    const bool serial = (int32_t)(s_act_until[LED_ID_TX] - t) > 0 ||
+                        (int32_t)(s_act_until[LED_ID_RX] - t) > 0;
+    const bool jtag = (int32_t)(s_act_until[LED_ID_JTAG] - t) > 0;
 
     if (s_error) {
         rgb_write((t & 1) ? RGB_LVL : 0, 0, 0);                 // fast red blink
@@ -84,9 +91,9 @@ static void rgb_tick(void *arg)
         rgb_write(RGB_LVL, RGB_LVL * 2 / 5, 0);                 // amber: target strapped for download
     } else if (s_flashing) {
         rgb_write(half ? RGB_LVL : 0, 0, half ? RGB_LVL : 0);   // magenta pulse: MSC/UF2 flashing
-    } else if ((int32_t)(s_jtag_until - t) > 0) {
+    } else if (jtag) {
         rgb_write(0, 0, RGB_LVL);                               // blue: debug probe activity
-    } else if ((int32_t)(s_serial_until - t) > 0) {
+    } else if (serial) {
         rgb_write(0, RGB_LVL, 0);                               // green: serial activity
     } else {
         rgb_write(0, 0, 0);                                     // idle
@@ -112,17 +119,47 @@ static void rgb_init(void)
         return;
     }
     led_strip_clear(s_strip);
-
-    const esp_timer_create_args_t timer_args = {
-        .callback = rgb_tick,
-        .name = "led_tick",
-    };
-    if (esp_timer_create(&timer_args, &s_tick_timer) == ESP_OK) {
-        esp_timer_start_periodic(s_tick_timer, TICK_MS * 1000);
-    }
 }
 
 #endif // CONFIG_BRIDGE_GPIO_RGB_LED > -1
+
+// Discrete LEDs are driven from here too: the raw activity pulse is a few
+// microseconds and is invisible without the same stretch the RGB LED gets.
+static void led_tick(void *arg)
+{
+    const uint32_t t = ++s_tick;
+
+    if (!s_error) {
+        bool want[3];
+        for (int i = 0; i < 3; i++) {
+            want[i] = (int32_t)(s_act_until[i] - t) > 0;
+        }
+        // Roles sharing a pin must be OR'd: driving them in turn lets an idle
+        // role clear the pin an active one just set.
+        for (int i = 0; i < 3; i++) {
+            if (s_pin[i] < 0) {
+                continue;
+            }
+            bool on = false;
+            for (int j = 0; j < 3; j++) {
+                if (s_pin[j] == s_pin[i] && want[j]) {
+                    on = true;
+                    break;
+                }
+            }
+            if (on != s_gpio_on[i]) {
+                s_gpio_on[i] = on;
+                gpio_set_level(s_pin[i], on ? s_lvl[i] : !s_lvl[i]);
+            }
+        }
+    }
+
+#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
+    if (s_strip) {
+        rgb_render(t);
+    }
+#endif
+}
 
 void led_io_init(void)
 {
@@ -158,42 +195,33 @@ void led_io_init(void)
     rgb_init();
 #endif
 
+    const esp_timer_create_args_t timer_args = {
+        .callback = led_tick,
+        .name = "led_tick",
+    };
+    if (esp_timer_create(&timer_args, &s_tick_timer) == ESP_OK) {
+        esp_timer_start_periodic(s_tick_timer, TICK_MS * 1000);
+    }
+
     ESP_LOGI(TAG, "LED init done");
 }
 
 void led_io_set(led_id_t id, bool active)
 {
-    gpio_led_set(id, active);
-
-#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
-    if (active && s_strip) {
-        if (id == LED_ID_JTAG) {
-            s_jtag_until = s_tick + ACT_HOLD_TICKS;
-        } else {
-            s_serial_until = s_tick + ACT_HOLD_TICKS;
-        }
+    if (active && id <= LED_ID_JTAG) {
+        s_act_until[id] = s_tick + ACT_HOLD_TICKS;
     }
-#endif
 }
 
 void led_io_set_target(bool boot, bool rst)
 {
-#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
     s_boot_low = !boot;
     s_rst_low = !rst;
-#else
-    (void)boot;
-    (void)rst;
-#endif
 }
 
 void led_io_set_flashing(bool flashing)
 {
-#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
     s_flashing = flashing;
-#else
-    (void)flashing;
-#endif
 }
 
 void led_io_signal_error(void)
@@ -208,9 +236,7 @@ void led_io_signal_error(void)
         {true,  true,  true},
     };
 
-#if (CONFIG_BRIDGE_GPIO_RGB_LED > -1)
-    s_error = true;
-#endif
+    s_error = true;     // hand the LEDs over to this pattern; stop the tick driving them
 
     for (size_t i = 0; i < sizeof(led_patterns) / sizeof(led_patterns[0]); ++i) {
         gpio_led_set(LED_ID_TX, led_patterns[i][0]);
