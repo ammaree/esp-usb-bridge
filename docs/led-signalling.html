@@ -155,8 +155,11 @@
         </table>
       </div>
       <p>Series resistors are 10&nbsp;k, so these run at roughly 0.15&nbsp;mA &mdash; expect them dim. There is no power LED. The firmware's TX/RX callback swap is deliberate and matches MuseLab's own net names (<code>TARGET_LED_TX</code> lights when the target transmits); do not "correct" it.</p>
-      <p><strong>D1 may not be fitted.</strong> The red LED is absent from the v1.2 schematic's BOM, so on some boards GPIO12 drives nothing and the practical inventory is green + blue. Check yours before treating a dark D1 as a fault.</p>
-      <p>None of the RGB states apply here. A fatal error shows as the three LEDs blinking a fixed seven-step pattern over ~3.5&nbsp;s.</p>
+      <p><strong>D1 is not fitted.</strong> The v1.2 BOM lists only <code>D2 GREEN</code> and <code>D3 BLUE</code>, one each &mdash; there is no red part. So GPIO12 drives nothing and the real inventory is green + blue. A dark D1 is not a fault; there is no D1.</p>
+      <p>None of the RGB states apply here. A fatal error shows as the LEDs blinking a fixed seven-step pattern over ~3.5&nbsp;s.</p>
+      <div class="note">
+        <p><strong>Schematic-verified, not hardware-verified.</strong> This config builds clean for ESP32-S2 and every pin is read off the v1.2 schematic, but the firmware has never been run on an ESPLink. Reflashing one is awkward: the S2's own strapping and UART come out only on <code>J1</code>, a <strong>1.27&nbsp;mm</strong> 6&times;1 SMT header (the two 2.54&nbsp;mm rows are <code>J3</code> target serial and <code>J4</code> target JTAG). Download mode needs <code>J1</code> pin&nbsp;3 (GPIO0) shorted to pin&nbsp;6 (GND) as the board powers up. MuseLab ship this same project, so a stock ESPLink already works as a bridge &mdash; just without anything in this fork.</p>
+      </div>
     </div>
 
     <div class="board">
