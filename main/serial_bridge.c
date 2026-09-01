@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <sys/param.h>
 
 #include "serial_bridge.h"
 #include "serial_handler.h"
@@ -32,7 +33,6 @@
 static const char *TAG = "serial_bridge";
 
 static RingbufHandle_t usb_sendbuf;
-static SemaphoreHandle_t usb_tx_requested = NULL;
 static SemaphoreHandle_t usb_tx_done = NULL;
 static esp_timer_handle_t state_change_timer;
 static bool download_mode_armed;
@@ -56,61 +56,43 @@ static void transport_data_received_callback(const uint8_t *data, size_t len)
     ESP_LOGW(TAG, "USB send ringbuffer full, dropped %zu bytes", len);
 }
 
-static esp_err_t usb_wait_for_tx(const uint32_t block_time_ms)
-{
-    if (xSemaphoreTake(usb_tx_done, pdMS_TO_TICKS(block_time_ms)) != pdTRUE) {
-        return ESP_ERR_TIMEOUT;
-    }
-    return ESP_OK;
-}
-
 static void usb_sender_task(void *pvParameters)
 {
     while (1) {
         size_t ringbuf_received;
-        uint8_t *buf = xRingbufferReceiveUpTo(usb_sendbuf, &ringbuf_received, pdMS_TO_TICKS(100),
+        uint8_t *buf = xRingbufferReceiveUpTo(usb_sendbuf, &ringbuf_received, portMAX_DELAY,
                                               CFG_TUD_CDC_TX_BUFSIZE);
-
-        if (buf) {
-            uint8_t int_buf[CFG_TUD_CDC_TX_BUFSIZE];
-            memcpy(int_buf, buf, ringbuf_received);
-            vRingbufferReturnItem(usb_sendbuf, (void *) buf);
-
-            for (int transferred = 0, to_send = ringbuf_received; transferred < ringbuf_received;) {
-                xSemaphoreGive(usb_tx_requested);
-                const int wr_len = tud_cdc_write(int_buf + transferred, to_send);
-                /* tinyusb might have been flushed the data. In case not flushed, we are flushing here.
-                    2nd attempt might return zero, meaning there is no data to transfer. So it is safe to call it again.
-                */
-                tud_cdc_write_flush();
-                if (usb_wait_for_tx(50) != ESP_OK) {
-                    xSemaphoreTake(usb_tx_requested, 0);
-                    tud_cdc_write_clear(); /* host might be disconnected. drop the buffer */
-                    ESP_LOGW(TAG, "usb tx timeout, dropped %d bytes", to_send);
-                    break;
-                }
-                ESP_LOGD(TAG, "USB ringbuffer -> USB CDC (%d bytes)", wr_len);
-                transferred += wr_len;
-                to_send -= wr_len;
-            }
-        } else {
-            ESP_LOGD(TAG, "usb_sender_task: nothing to send");
-            vTaskDelay(pdMS_TO_TICKS(100));
+        if (!buf) {
             continue;
         }
+
+        uint8_t int_buf[CFG_TUD_CDC_TX_BUFSIZE];
+        memcpy(int_buf, buf, ringbuf_received);
+        vRingbufferReturnItem(usb_sendbuf, (void *) buf);
+
+        // Fill the CDC FIFO as space frees. Nothing is discarded here: back-pressure
+        // belongs in the ringbuffer and then the UART, not in lost bytes.
+        size_t sent = 0;
+        while (sent < ringbuf_received) {
+            const uint32_t avail = tud_cdc_write_available();
+            if (avail == 0) {
+                tud_cdc_write_flush();
+                if (xSemaphoreTake(usb_tx_done, pdMS_TO_TICKS(100)) != pdTRUE && !tud_mounted()) {
+                    ESP_LOGW(TAG, "no host, dropped %u bytes", (unsigned)(ringbuf_received - sent));
+                    break;
+                }
+                continue;
+            }
+            sent += tud_cdc_write(int_buf + sent, MIN(ringbuf_received - sent, avail));
+        }
+        tud_cdc_write_flush();
     }
     vTaskDelete(NULL);
 }
 
+// Signals only that TX FIFO space may have freed; no per-write accounting to slip.
 void tud_cdc_tx_complete_cb(const uint8_t itf)
 {
-    if (xSemaphoreTake(usb_tx_requested, 0) != pdTRUE) {
-        /* Semaphore should have been given before write attempt.
-            Sometimes tinyusb can send one more cb even xfer_complete len is zero
-        */
-        return;
-    }
-
     xSemaphoreGive(usb_tx_done);
 }
 
@@ -245,9 +227,8 @@ esp_err_t serial_bridge_init(void)
 
     // Create semaphores for USB TX synchronization
     usb_tx_done = xSemaphoreCreateBinary();
-    usb_tx_requested = xSemaphoreCreateBinary();
-    if (!usb_tx_done || !usb_tx_requested) {
-        ESP_LOGE(TAG, "Cannot create USB TX semaphores");
+    if (!usb_tx_done) {
+        ESP_LOGE(TAG, "Cannot create USB TX semaphore");
         return ESP_ERR_NO_MEM;
     }
 
