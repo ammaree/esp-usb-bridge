@@ -49,7 +49,7 @@ static void transport_data_received_callback(const uint8_t *data, size_t len)
     // which is what held the target -> host path to 115200. Bounded so a host
     // that has stopped reading cannot wedge the UART task indefinitely.
     for (int retry = 0; retry < 10; retry++) {
-        if (xRingbufferSend(usb_sendbuf, data, len, pdMS_TO_TICKS(100)) == pdTRUE) {
+        if (xRingbufferSend(usb_sendbuf, data, len, pdMS_TO_TICKS(10)) == pdTRUE) {
             return;
         }
     }
